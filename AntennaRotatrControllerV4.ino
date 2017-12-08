@@ -24,7 +24,7 @@ const int DT = 1;             // Display used
 const String QRZ = "IU6CRH";  // Your QRZ
 const String NAME = "Diego";  // Your Name
 //const bool DEBUG = false;         // Debug flag true == print debug value on serial output
-const bool DEBUG = true;         // Debug flag true == print debug value on serial output
+const int DEBUG = 6;         // Debug flag true == print debug value on serial output
 const int minAzimut = 0;
 const int maxAzimut = 359;
 
@@ -72,39 +72,54 @@ typedef enum {
 
 int X, Y, dm;
 
-inline void InitializeDisplay(int displayType); // inizializzazione del display generica
-inline void InitializeDisplayHVGA480x320();     // inizializzazione specifica per il display da 3.2 pollici 480x320 HVGA TFT LCD
-inline void ConfigureIOPins();                  // Inizializazione dei pins
-inline void DrawInitialScreen();                // disegno preliminare dello schermo
+inline void InitializeDisplay(int displayType); 						// inizializzazione del display generica
+inline void InitializeDisplayHVGA480x320();     						// inizializzazione specifica per il display da 3.2 pollici 480x320 HVGA TFT LCD
+inline void ConfigureIOPins();                  						// Inizializazione dei pins
+inline void DrawInitialScreen();                						// disegno preliminare dello schermo
 inline void UserPrint (int x, int y, String userData, Colors COLOR);    // scrittura delle stringhe
 inline void DrawBeamHead(int angle, HeadType headStyle, Action toDo);   // disegno delle lancette
 inline void UserPrintAngle (int x, int y, int userAngle, Colors COLOR); // print degli angoli con font SevenSegmentFull
-inline boolean isPushed(int botton);            // rilevazione della pressione dei pulsanti
-inline void StartStopChangeStatus();            // cambia la flag alla pressione del pulsante start/stop
-inline void StartStopAction();                  // effettua le azioni da compiere a seconda del flag start/stop
-inline void AutoManualChangeStatus();           // cambia la flag alla pressione del pulsante auto/manual
-inline void AutoManualAction();                 // effettua le azioni da compiere a seconda del flag auto/manual
-inline void UserSetConfirmChangeStatus();       // cambia la flag alla pressione del pulsante user set/confirm
-inline void BeamSetting();                      // effettua la lettura del potenziometro per il settaggio dell'azimut
+inline boolean isPushed(int botton);            						// rilevazione della pressione dei pulsanti
+inline void StartStopChangeStatus();            						// cambia la flag alla pressione del pulsante start/stop
+inline void StartStopAction();                  						// effettua le azioni da compiere a seconda del flag start/stop
+inline void AutoManualChangeStatus();           						// cambia la flag alla pressione del pulsante auto/manual
+inline void AutoManualAction();                 						// effettua le azioni da compiere a seconda del flag auto/manual
+inline void UserSetConfirmChangeStatus();       						// cambia la flag alla pressione del pulsante user set/confirm
+inline void BeamSetting();                      						// effettua la lettura del potenziometro per il settaggio dell'azimut
 inline void SerialDebug (String output);
 
 UTFT utftDisplay(ILI9481, 38, 39, 40, 41);
 UTFT_Geometry geo(&utftDisplay);
 
-int beamDir = 0;    // Actual beam direction
-int beamSet = 0;    // Beam directione to set
-int spdValue = 0;   // Rotation speed
+int beamDir = 1;    // Actual beam direction
+int beamSet = 1;    // Beam directione to set
+int spdValue = 1;   // Rotation speed
 
 PINflag StartStopFlag = Stop;
-PINflag SpeedModeFlag = Auto;
-PINflag UserActionFlag = Confirmed;
+PINflag SpeedModeFlag = Manual;
+PINflag UserActionFlag = Setting;
 
 
 void setup() {
   Serial.begin(9600);
+  Serial.print("Value of the DEBUG flag == ");
+  Serial.print(DEBUG);
+  Serial.print("\n");
   InitializeDisplay(DT);
   DrawInitialScreen();
   ConfigureIOPins();
+  BeamSetting();
+  UserActionFlag = Confirmed;
+  BeamSetting();
+  Serial.print("Potenziometro di puntamento settato a");
+  Serial.print(beamDir);
+  Serial.print("° \n");
+  spdValue = analogRead(A0);
+  Serial.print("Potenziometro del valore della velocita settato a ");
+  Serial.print(spdValue);
+  Serial.print("unità \n");
+  // Da rimuovere
+  beamDir = beamSet;
   //DrawBeamHead(beamSet,BeamSET,Create);
   //DrawBeamHead(beamDir,BeamDIR,Create);
   //UserPrintAngle(0,213,beamSet,green);
@@ -112,7 +127,7 @@ void setup() {
 }
 
 void loop() {
-  if (DEBUG) {
+  if (DEBUG > 0) {
     Serial.print("--------------------------------Ciclyng loop() START ----------------------------------\n");
     Serial.print("Value of the start/stop flag == ");
     Serial.print(StartStopFlag);
@@ -120,9 +135,12 @@ void loop() {
     Serial.print("Value of the Auto/Manual flag == ");
     Serial.print(SpeedModeFlag);
     Serial.print("\n");
+    Serial.print("Value of the User Action flag == ");
+    Serial.print(UserActionFlag);
+    Serial.print("\n");
   }
   if (isPushed(StartStopSwitch)) {
-    if (DEBUG) {
+    if (DEBUG > 0) {
       Serial.print("Satus of the start/stop flag == ");
       Serial.print(StartStopFlag);
       Serial.print("\n");
@@ -130,15 +148,23 @@ void loop() {
       Serial.print("\n");
     }
     StartStopChangeStatus();
-    if (DEBUG) {
+    if (DEBUG > 0) {
       Serial.print("New satus of the start/stop flag == ");
       Serial.print(StartStopFlag);
       Serial.print("\n");
     }
   }
+  if (DEBUG > 0) {
+    Serial.print("Entering StartStopAction()");
+    Serial.print("\n");
+  }
   StartStopAction();
+  if (DEBUG > 0) {
+    Serial.print("Exiting StartStopAction()");
+    Serial.print("\n");
+  }
   if (isPushed(SpeedControlSwitch)) {
-    if (DEBUG) {
+    if (DEBUG > 0) {
       Serial.print("Satus of the Auto/Manual flag == ");
       Serial.print(SpeedModeFlag);
       Serial.print("\n");
@@ -146,34 +172,46 @@ void loop() {
       Serial.print("\n");
     }
     AutoManualChangeStatus();
-    if (DEBUG) {
+    if (DEBUG > 0) {
       Serial.print("New satus of the Auto/Manual flag == ");
       Serial.print(SpeedModeFlag);
       Serial.print("\n");
     }
   }
+  if (DEBUG > 0) {
+    Serial.print("Entering AutoManualAction()");
+    Serial.print("\n");
+  }  
   AutoManualAction();
-  //  if (isPushed(UserActionSwitch)) {
-  //    UserSetConfirmChangeStatus();
-  //    SerialDebug ("UserActionSwitch has been pushed");
-  //  }
-  //  BeamSetting();
-  // BeaDirControl();
-  if (DEBUG) {
+  if (DEBUG > 0) {
+    Serial.print("Exiting AutoManualAction()");
+    Serial.print("\n");
+  }
+  if (isPushed(UserActionSwitch)) {
+	  if (DEBUG > 0) {
+		  Serial.print("UserActionSwitch has been pushed");
+		  Serial.print("\n");
+		  Serial.print("Satus of UserActionFlag == ");
+		  Serial.print(UserActionFlag);
+		  Serial.print("\n");      
+	  }
+    UserSetConfirmChangeStatus();
+	  if (DEBUG > 0) {
+		Serial.print("New status of UserActionFlag == ");
+		Serial.print(UserActionFlag);
+		Serial.print("\n");      
+	  }
+  }
+  //BeamSetting();
+  //BeaDirControl();
+  if (DEBUG > 0) {
     Serial.print("--------------------------------Ciclyng loop() END ----------------------------------\n");
     delay(1000);
   }
 }
 
-void SerialDebug (String output) {
-  if (DEBUG) {
-    Serial.print(output);
-    Serial.print("\n");
-  }
-}
-
 void StartStopChangeStatus() {
-  if (DEBUG) {
+  if (DEBUG > 10) {
     Serial.print("Ingresso alla StartStopChangeStatus()\n");
     Serial.print("Valore d'ingresso della Start/Stop Falg == ");
     Serial.print(StartStopFlag);
@@ -181,20 +219,20 @@ void StartStopChangeStatus() {
   }
   if (StartStopFlag == Stop) {
     StartStopFlag = Start;
-    if (DEBUG) {
+    if (DEBUG > 10) {
       Serial.print("Nuovo valore della Start/Stop Falg == ");
       Serial.print(StartStopFlag);
       Serial.print("\n");
     }
   } else if (StartStopFlag == Start) {
     StartStopFlag = Stop;
-    if (DEBUG) {
+    if (DEBUG > 10) {
       Serial.print("Nuovo valore della Start/Stop Falg == ");
       Serial.print(StartStopFlag);
       Serial.print("\n");
     }
   }
-  if (DEBUG) {
+  if (DEBUG > 10) {
     Serial.print("Uscita dalla StartStopChangeStatus()\n");
     Serial.print("Valore d'uscita della Start/Stop Falg == ");
     Serial.print(StartStopFlag);
@@ -203,7 +241,7 @@ void StartStopChangeStatus() {
 }
 
 void AutoManualChangeStatus() {
-  if (DEBUG) {
+  if (DEBUG > 10) {
     Serial.print("Ingresso alla AutoManualChangeStatus()\n");
     Serial.print("Valore d'ingresso della Auto/Manual Falg == ");
     Serial.print(SpeedModeFlag);
@@ -211,20 +249,20 @@ void AutoManualChangeStatus() {
   }
   if (SpeedModeFlag == Manual ) {
     SpeedModeFlag = Auto;
-    if (DEBUG) {
+    if (DEBUG > 10) {
       Serial.print("Nuovo valore della  Auto/Manual Falg == ");
       Serial.print(SpeedModeFlag);
       Serial.print("\n");
     }
   } else if (SpeedModeFlag == Auto ) {
     SpeedModeFlag = Manual;
-    if (DEBUG) {
+    if (DEBUG > 10) {
       Serial.print("Nuovo valore della Auto/Manual Falg == ");
       Serial.print(SpeedModeFlag);
       Serial.print("\n");
     }
   }
-  if (DEBUG) {
+  if (DEBUG > 10) {
     Serial.print("Uscita dalla AutoManualChangeStatus()\n");
     Serial.print("Valore d'uscita della Auto/Manual Falg == ");
     Serial.print(SpeedModeFlag);
@@ -241,20 +279,43 @@ void UserSetConfirmChangeStatus() {
 }
 
 void BeamSetting() {
+  if (DEBUG > 5) {
+    Serial.print("--------------- Reading setting from beam setting --------------- \n");
+  }
   int rawAngle;
+  if (DEBUG > 5) {
+	Serial.print("Setting permission == ");
+	Serial.print(UserActionFlag);  
+	Serial.print("\n");
+  }
   if (UserActionFlag == Setting) {              // Controlla se e' permesso il settaggio
-    DrawBeamHead(beamSet, BeamSET, Delete);     //   cancella la llancetta di settaggio al vecchio azimut
+    //DrawBeamHead(beamSet, BeamSET, Delete);     //   cancella la llancetta di settaggio al vecchio azimut
     int rawAngle = analogRead(A1);              //   leggi il potenziometro
-    beamSet = map(rawAngle, 0, 1023, 0 , 360);  //   normalizza la letura del potenziometro
-    DrawBeamHead(beamSet, BeamSET, Create);     //   Disegna la lancetta all'azimut corrispondente
+	if (DEBUG > 5) {
+		Serial.print("RAW reading from potetiomeeter == ");
+		Serial.print(rawAngle);  
+		Serial.print("\n");
+	}	
+    beamSet = map(rawAngle, 0, 1023, 0 , 360);  //   normalizza la letura del potenziometrorawAngle
+	if (DEBUG > 5) {
+		Serial.print("BEAM setting == ");
+		Serial.print(beamSet);  
+		Serial.print("\n");
+	}	
+    //DrawBeamHead(beamSet, BeamSET, Create);     //   Disegna la lancetta all'azimut corrispondente
     UserPrintAngle(0, 213, beamSet, yellow);    //   Scrivi l'azimut corrispondente in giallo
   } else {                                      // Altrimenti
-    UserPrintAngle(0, 213, beamSet, green);     //   conferma il settaggio
+    //UserPrintAngle(0, 213, beamSet, green);     //   conferma il settaggio
+    if (DEBUG > 5) {
+      Serial.print("BEAM set == ");
+      Serial.print(beamSet);  
+      Serial.print("\n");
+  }
   }
 }
 
 void StartStopAction() {
-  if (DEBUG) {
+  if (DEBUG > 10) {
     Serial.print("Ingresso alla StartStopAction()########################\n");
     Serial.print("Valore in ingresso della Start/Stop Falg == ");
     Serial.print(StartStopFlag);
@@ -265,7 +326,7 @@ void StartStopAction() {
     digitalWrite(CCWMotor, LOW);
     StartStopFlag = Stop;
     UserPrint(455, 25, "      ", black);
-    if (DEBUG) {
+    if (DEBUG > 10) {
       Serial.print("Finding rotation stopped\n");
       Serial.print("Start/Stop Flag == ");
       Serial.print(StartStopFlag);
@@ -278,7 +339,7 @@ void StartStopAction() {
       digitalWrite(CWMotor, HIGH);
       digitalWrite(CCWMotor, LOW);
       UserPrint(455, 25, "  CW ", yellow);
-      if (DEBUG) {
+      if (DEBUG > 10) {
         Serial.print("Finding rotation CW\n");
         Serial.print("Start/Stop Flag == ");
         Serial.print(StartStopFlag);
@@ -291,7 +352,7 @@ void StartStopAction() {
       digitalWrite(CWMotor, LOW);
       digitalWrite(CCWMotor, HIGH);
       UserPrint(455, 25, " CCW ", yellow);
-      if (DEBUG) {
+      if (DEBUG > 10) {
         Serial.print("Finding rotation CCW\n");
         Serial.print("Start/Stop Flag == ");
         Serial.print(StartStopFlag);
@@ -305,7 +366,7 @@ void StartStopAction() {
       digitalWrite(CCWMotor, LOW);
       StartStopFlag = Stop;
       UserPrint(455, 25, "      ", black);
-      if (DEBUG) {
+      if (DEBUG > 10) {
         Serial.print("Beam has reached set point\n");
         Serial.print("Start/Stop Flag == ");
         Serial.print(StartStopFlag);
@@ -315,57 +376,60 @@ void StartStopAction() {
       }
     }
   }
-  if (DEBUG) {
+  if (DEBUG > 10) {
     Serial.print("Uscita dalla StartStopAction()\n");
   }
 }
 
 void AutoManualAction() {
-  if (DEBUG) {
+  if (DEBUG > 2) {
     Serial.print("Ingresso alla AutoManualAction()########################\n");
     Serial.print("Valore in ingresso della Auto/Manual Falg == ");
     Serial.print(SpeedModeFlag);
     Serial.print("\n");
   }
   if (SpeedModeFlag == Manual) {
-    if (DEBUG) {
+    if (DEBUG > 3) {
       Serial.print("With Auto/Manual Falg == Manual \n");
     }
     if (StartStopFlag == Stop) {
-      if (DEBUG) {
+      if (DEBUG > 3) {
         Serial.print("Rotation is stopped\n");
       }
       spdValue = analogRead(A0);
-      if (DEBUG) {
-        Serial.print("RAW value letta dal potenziometro\n == ");
+      if (DEBUG > 3) {
+        Serial.print("RAW value letta dal potenziometro == ");
         Serial.print(spdValue);
         Serial.print("\n");
       }
       spdValue = map(spdValue, 0, 1023, minAzimut, maxAzimut);
-      if (DEBUG) {
+      if (DEBUG > 3) {
         Serial.print("Value normalizzata nel range nim max azimut == ");
         Serial.print(spdValue);
         Serial.print("\n");
       }
-      analogWrite(ManualSpeedCtrl, spdValue);
+      //analogWrite(ManualSpeedCtrl, spdValue);
     } else {
+      if (DEBUG > 3) {
+        Serial.print("Rotation in progress\n");
+      }
       spdValue = 0;
-                 analogWrite(ManualSpeedCtrl, spdValue);
+      //analogWrite(ManualSpeedCtrl, spdValue);
     }
-    if (DEBUG) {
+    if (DEBUG > 3) {
       Serial.print("Pin ");
       Serial.print(ManualSpeedCtrl);
-      Serial.print("Impostato a ");
+      Serial.print(" Impostato a ");
       Serial.print(spdValue);
       Serial.print("\n");
     }
-    UserPrint(400, 12, "Manual", yellow);
+    //UserPrint(380, 12, "Manual", yellow);
   } else {
-    if (DEBUG) {
+    if (DEBUG > 10) {
       Serial.print("With Auto/Manual Falg == Auto \n");
     }
     if (StartStopFlag == Start) {
-      if (DEBUG) {
+      if (DEBUG > 10) {
         Serial.print("Rotation in progress\n");
       }
       /* Irrespective of the Direction the difference in value needs to
@@ -377,7 +441,7 @@ void AutoManualAction() {
       int scaleMaxValue = 1023;
       spdValue = map(scaleRotationValue, 0, scaleMaxValue, minAzimut, maxAzimut); //The Scaling needs to be fine tuned based on the Test.
       analogWrite(ManualSpeedCtrl, spdValue);
-      if (DEBUG) {
+      if (DEBUG > 10) {
       Serial.print("RAW value letta in base alla rotazione == ");
       Serial.print(rotationValue);
       Serial.print("\n");
