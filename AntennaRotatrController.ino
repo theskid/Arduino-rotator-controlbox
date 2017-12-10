@@ -22,7 +22,7 @@
 const int DT = 1;               // Display used
 const String QRZ = "IU6CRH";    // Your QRZ
 const String NAME = "Diego";    // Your Name
-//#define DEBUG                 // (Un)comment to enable/disable debug mode
+#define DEBUG                 // (Un)comment to enable/disable debug mode
 const int minAzimut = 0;
 const int maxAzimut = 359;
 const int rotatorStart = 1847;
@@ -148,8 +148,8 @@ void setup() {
 }
 
 void loop() {
-  DebugPrintInt("%d\n", Read12bit(rotatorSensor));
   DebugPrintMessage("------------------------------- Cycling loop() START -------------------------------\n");
+  DebugPrintInt("RAW value of rotator potentiometer == %d\n", Read12bit(rotatorSensor));
   DebugPrintInt("Value of the start/stop flag == %d\n", StartStopFlag);
   DebugPrintInt("Value of the Auto/Manual flag == %d\n", SpeedModeFlag);
   DebugPrintInt("Value of the User Action flag == %d\n", UserActionFlag);
@@ -283,26 +283,26 @@ boolean isPushed(int button) {
 }
 
 void InitializeDisplayHVGA480x320() {
-  X = 320;
+  X = 290;
   Y = 160;
-  dm = 130;
+  dm = 120;
   utftDisplay.InitLCD(LANDSCAPE);
   utftDisplay.clrScr();
   utftDisplay.setFont(BigFont);
   UserPrint(0, 12, "ANTENNA ROTATOR", orange);
   UserPrint(40, 36, "CONTROLLER", orange);
-  utftDisplay.drawLine(440, 160, 460, 160);
-  utftDisplay.drawLine(180, 160, 200, 160);
-  utftDisplay.drawLine(320, 20, 320, 40);
-  utftDisplay.drawLine(320, 280, 320, 300);
-  utftDisplay.drawCircle(320, 160, 130);
+  utftDisplay.drawLine(X+(dm-10), Y, X+(dm+10), Y);
+  utftDisplay.drawLine(X-(dm-10), Y, X-(dm+10), Y);
+  utftDisplay.drawLine(X, Y-(dm-10), X, Y-(dm+10));
+  utftDisplay.drawLine(X, Y+(dm-10), X, Y+(dm+10));
+  utftDisplay.drawCircle(X, Y, dm);
   UserPrint(0, 75, "BEAM DIR", red);
   UserPrint(0, 175, "BEAM SET", red);
   UserPrint(0, 290, QRZ + " : " + NAME, white);
-  UserPrint((X - 8), (Y - 157), "N", red);
-  UserPrint((X - 8), (Y + 145), "S", red);
-  UserPrint((X + 141), (Y - 7), "E", red);
-  UserPrint((X - 160), (Y - 7), "W", red);
+  UserPrint((X-8), (Y-(dm+27)), "N", red);
+  UserPrint((X-8), (Y+(dm+15)), "S", red);
+  UserPrint((X+(dm+13)), (Y-7), "E", red);
+  UserPrint((X-(dm+30)), (Y-7), "W", red);
 }
 
 void InitializeDisplay(int displayNumber) {
