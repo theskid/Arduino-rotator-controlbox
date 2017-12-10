@@ -14,7 +14,7 @@
 const int StartStopSwitch = 12;
 const int UserActionSwitch = 8;
 const int SpeedControlSwitch = 13;
-const int ManualSpeedCtrl = 9;
+const int PWMSpeedControl = 9;
 const int CWMotor = 10;
 const int CCWMotor = 11;
 
@@ -274,28 +274,23 @@ void AutoManualAction() {
     DebugPrintMessage("Entering AutoManualAction()\n");
     int rawSpdValue;
     if (!SpeedModeFlag) {
-        if (StartStopFlag == Stop) {
-            rawSpdValue = analogRead(spdSetPotentiometer);
-            spdValue = map(rawSpdValue, 0, 1023, 0, 255);
-            analogWrite(ManualSpeedCtrl, spdValue);
-        } else {
-            spdValue = 0;
-            analogWrite(ManualSpeedCtrl, spdValue);
-        }
+        rawSpdValue = analogRead(spdSetPotentiometer);
+        spdValue = map(rawSpdValue, 0, 1023, 0, 255);
+        analogWrite(PWMSpeedControl, spdValue);
         utftDisplay.setColor(yellow);
         utftDisplay.setFont(BigFont);
         utftDisplay.print("Manual ", RIGHT, 12);
     } else {
         if (StartStopFlag == Start) {
             int rotationValue = (abs(beamSet - beamDir)) << 2;
-            if (rotationValue <= 10) {
-                spdValue = map(rotationValue, 0, 360, 0, 255); 
-            }
-            analogWrite(ManualSpeedCtrl, spdValue);
+            if (10 < rotationValue)
+                spdValue = 255;
+            else
+                spdValue = map(rotationValue, 0, 1023, 0, 127);
         } else {
             spdValue = 0;
-            analogWrite(ManualSpeedCtrl, spdValue);
         }
+        analogWrite(PWMSpeedControl, spdValue);
         utftDisplay.setColor(yellow);
         utftDisplay.setFont(BigFont);
         utftDisplay.print("  Auto ", RIGHT, 12); 
@@ -361,7 +356,7 @@ void ConfigureIOPins() {
     pinMode(StartStopSwitch, INPUT);
     pinMode(UserActionSwitch, INPUT);
     pinMode(SpeedControlSwitch, INPUT);
-    pinMode(ManualSpeedCtrl, OUTPUT);
+    pinMode(PWMSpeedControl, OUTPUT);
     pinMode(CWMotor, OUTPUT);
     pinMode(CCWMotor, OUTPUT);
     digitalWrite(CWMotor, LOW);
