@@ -2,11 +2,9 @@
 
 ## Library dependencies
 
-UTFT.h (http://www.rinkydinkelectronics.com/library.php)
+[**UTFT**](http://www.rinkydinkelectronics.com/library.php?id=51) – A universal library that supports a large number of display modules and controllers
 
-UTFT_Geometry.h (http://www.rinkydinkelectronics.com/library.php)
-
-The UTFT is a universal library that supports a large number of display modules and controllers, so it will be much easier to keep the project up-to-date in the future. UTFT_Geometry adds some geometric functions to UTFT library.
+[**UTFT_Geometry**](http://www.rinkydinkelectronics.com/library.php?id=59) – Adds some geometric functions to UTFT library
 
 Both need to be installed in your Arduino compiler library directory.
 
