@@ -2,7 +2,7 @@
 // Version 6 Rev. 1
 //
 // Dependencies:
-// Font SevenSegmentFull.c  (http://www.rinkydinkelectronics.com/r_fonts.php)
+// Font SevenSegmentFull.c (http://www.rinkydinkelectronics.com/r_fonts.php)
 // UTFT Library from Henning Karlsen (http://www.rinkydinkelectronics.com/library.php)
 // UTFT Geometry Library from Henning Karlsen (http://www.rinkydinkelectronics.com/library.php)
 
@@ -12,7 +12,7 @@
 /*** USER CONFIGURATION **********************************/
 
 typedef enum {
-    TFT_HVGA_480x320 = 1,                                              // 3.2 480x320 TFTLCD Shield
+    TFT_HVGA_480x320 = 1,                                               // 3.2 480x320 TFTLCD Shield
 } DISPLAY_TYPE;
 
 #include "Settings.h"
@@ -76,41 +76,46 @@ typedef enum {
 typedef enum {
     Released = 0,
     Pressed = 1,
-    Held = 2,                                                          // Currently unused
+    Held = 2,                                                           // Currently unused
 } BUTTON_STATE;
 
 int X, Y, dm;
 
-inline void InitializeDisplay(int displayType);                        // inizializzazione del display generica
-inline void ConfigureIOPins();                                         // Inizializazione dei pins
-inline void DrawInitialScreen();                                       // disegno preliminare dello schermo
-void UserPrint (int x, int y, String userData, Colors COLOR);          // scrittura delle stringhe
-void DrawBeamHead(int angle, HeadType headStyle, Action toDo);         // disegno delle lancette
-void UserPrintAngle (int x, int y, int userAngle, Colors COLOR);       // print degli angoli con font SevenSegmentFull
-inline void CheckButtons();
-void StartStopToggle();                                                // cambia la flag alla pressione del pulsante start/stop
-inline void StartStopAction();                                         // effettua le azioni da compiere a seconda del flag start/stop
-void AutoManualToggle();                                               // cambia la flag alla pressione del pulsante auto/manual
-inline void AutoManualAction();                                        // effettua le azioni da compiere a seconda del flag auto/manual
-void UserSetConfirmToggle();                                           // cambia la flag alla pressione del pulsante user set/confirm
-void BeamSetting();                                                    // effettua la lettura del potenziometro per il settaggio dell'azimut
-inline void BeamDirControl();                                          // effettua la lettura del potenziometro sotto il rotore dell'azimut
-int Read12bit(uint8_t pin);                                            // 12-bits oversampled analogread 
+inline void InitializeDisplay(int displayType);                         // Generic display initialization
+inline void ConfigureIOPins();                                          // Pins initialization
+inline void DrawInitialScreen();                                        // Initial screen overlay
+void UserPrint(int x, int y, String userData, Colors COLOR);            // String printer helper function
+void DrawBeamHead(int angle, HeadType headStyle, Action toDo);          // Beam drawing helper function
+void UserPrintAngle(int x, int y, int userAngle, Colors COLOR);         // Angle drawing through SevenSegmentFull font
+inline void CheckButtons();                                             // Button tracking
+void StartStopToggle();                                                 // Start/Stop button event toggle
+inline void StartStopAction();                                          // Start/Stop in-loop actions
+void AutoManualToggle();                                                // Auto/Manual button event toggle
+inline void AutoManualAction();                                         // Auto/Manual in-loop actions
+void UserSetConfirmToggle();                                            // Set/Confirm button event toggle
+void BeamSetting();                                                     // Azimut setting potentiometer read
+inline void BeamDirControl();                                           // Azimut rotor potentiometer read
+int Read12bit(uint8_t pin);                                             // 12-bits oversampled analogread 
 
 typedef struct {
     int DigitalPin;
     void (*EventFunction)();
 } BUTTON_MAP;
-const BUTTON_MAP ButtonsMap[] = { { UserActionSwitch, UserSetConfirmToggle }, { StartStopSwitch, StartStopToggle }, { SpeedControlSwitch, AutoManualToggle } };
+
+const BUTTON_MAP ButtonsMap[] = {
+    { UserActionSwitch, UserSetConfirmToggle },
+    { StartStopSwitch, StartStopToggle },
+    { SpeedControlSwitch, AutoManualToggle },
+};
 
 const float PIover180 = 3.1415926535897932384626433832795 / 180;
 
 UTFT utftDisplay(ILI9481, 38, 39, 40, 41);
 UTFT_Geometry geo(&utftDisplay);
 
-int beamDir = 1;                                                       // Actual beam direction
-int beamSet = 1;                                                       // Beam directione to set
-int spdValue = 1;                                                      // Rotation speed
+int beamDir = 1;                                                        // Actual beam direction
+int beamSet = 1;                                                        // Beam directione to set
+int spdValue = 1;                                                       // Rotation speed
 
 PINflag StartStopFlag = Stop;
 PINflag SpeedModeFlag = Manual;
@@ -156,7 +161,7 @@ void setup() {
 }
 
 void loop() {
-    DebugPrintMessage("------------------------------- Cycling loop() START -------------------------------\n");
+    DebugPrintMessage("---------------------------- Cycling loop() START ----------------------------\n");
     DebugPrintInt("RAW value of rotator potentiometer == %d\n", Read12bit(rotatorSensor));
     DebugPrintInt("Value of the start/stop flag == %d\n", StartStopFlag);
     DebugPrintInt("Value of the Auto/Manual flag == %d\n", SpeedModeFlag);
@@ -169,7 +174,7 @@ void loop() {
     AutoManualAction();
     BeamSetting();
     BeamDirControl();
-    DebugPrintMessage("-------------------------------- Cycling loop() END --------------------------------\n");
+    DebugPrintMessage("----------------------------- Cycling loop() END -----------------------------\n");
     #ifdef DEBUG
         delay(1000);
     #endif
@@ -179,11 +184,11 @@ void BeamDirControl() {
     int rawAngle;
     Colors color = green;
     if (beamSet != beamDir) {
-        DrawBeamHead(beamDir, BeamDIR, Delete);                        // Cancella la lancetta di direzione al vecchio azimut  
-        rawAngle = Read12bit(rotatorSensor);                           // Leggi il potenziometro sotto al rotore
-        // Normalizza la letura del potenziometro rawAngle
+        // Replace the old Azimut direction beam with the current direction
+        DrawBeamHead(beamDir, BeamDIR, Delete);
+        rawAngle = Read12bit(rotatorSensor);
         beamDir = map(rawAngle, rotatorStart, rotatorStop, minAzimut, maxAzimut);
-        DrawBeamHead(beamDir, BeamDIR, Create);                        // Disegna la lancetta dell'azimut all'attuale posizione
+        DrawBeamHead(beamDir, BeamDIR, Create);
         color = yellow;
     }
     UserPrintAngle(0, 113, beamDir, color);
@@ -193,13 +198,14 @@ void BeamSetting() {
     int rawAngle;
     Colors color = green;
     if (UserActionFlag == Setting) {
-        DrawBeamHead(beamSet, BeamSET, Delete);                        // cancella la lancetta di settaggio al vecchio azimut
-        rawAngle = analogRead(beamSetPotentiometer);                   // leggi il potenziometro di settaggio 
-        beamSet = map(rawAngle, 0, 1023, minAzimut, maxAzimut);        // normalizza la lettura del potenziometro rawAngle
-        DrawBeamHead(beamSet, BeamSET, Create);                        // Disegna la lancetta all'azimut corrispondente
+        // Replace the old Azimut setting beam with the current direction
+        DrawBeamHead(beamSet, BeamSET, Delete);
+        rawAngle = analogRead(beamSetPotentiometer);
+        beamSet = map(rawAngle, 0, 1023, minAzimut, maxAzimut);
+        DrawBeamHead(beamSet, BeamSET, Create);
         color = yellow;
     }
-    UserPrintAngle(0, 213, beamSet, color);                            // conferma il settaggio
+    UserPrintAngle(0, 213, beamSet, color);
 }
 
 void UserSetConfirmToggle() {
@@ -273,7 +279,7 @@ void AutoManualAction() {
     }
 }
 
-//    Checks buttons status and fires corresponding events
+// Checks buttons status and fires corresponding events
 void CheckButtons()
 {
     // Keep track of buttons status, to avoid trigger ghosting/multi-fire
@@ -421,7 +427,7 @@ void DrawBeamHead(int angle, HeadType headStyle, Action toDo) {
 }
 
 void UserPrintAngle (int x, int y, int userAngle, Colors COLOR) {
-    char angle[4];                                                     // 3 digit + null string terminator (\0)
+    char angle[4];                                                      // 3 digit + null string terminator (\0)
     sprintf(angle, "%03d", userAngle);
     utftDisplay.setColor(COLOR);
     utftDisplay.setFont(SevenSegmentFull);
@@ -430,10 +436,10 @@ void UserPrintAngle (int x, int y, int userAngle, Colors COLOR) {
 
 int Read12bit(uint8_t pin) {
     int Result = 0;
-    analogRead(pin);                                                   // Switch ADC
-    for (int i = 0; i < 16; i++) {                                     // Read 16 times
-        Result += analogRead(pin);                                     // Sum results
+    analogRead(pin);                                                    // Switch ADC
+    for (int i = 0; i < 16; i++) {                                      // Read 16 times
+        Result += analogRead(pin);                                      // Sum results
     }
-    Result >>= 2;                                                      // Divide by 4 for 12 bit value
+    Result >>= 2;                                                       // Divide by 4 for 12 bit value
     return Result;
 }
