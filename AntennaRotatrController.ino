@@ -9,14 +9,6 @@
 #include <UTFT.h>
 #include <UTFT_Geometry.h>
 
-/*** USER CONFIGURATION **********************************/
-
-typedef enum {
-    TFT_HVGA_480x320 = 1,                                               // 3.2 480x320 TFTLCD Shield
-} DISPLAY_TYPE;
-
-#include "Settings.h"
-
 /*** PIN DESIGNATION *************************************/
 
 const int StartStopSwitch = 12;
@@ -25,22 +17,35 @@ const int SpeedControlSwitch = 13;
 const int ManualSpeedCtrl = 9;
 const int CWMotor = 10;
 const int CCWMotor = 11;
+
 const uint8_t spdSetPotentiometer = A0;
 const uint8_t beamSetPotentiometer = A1;
 const uint8_t rotatorSensor = A2;
 
+/*** USER CONFIGURATION **********************************/
+
+typedef enum {
+    TFT_HVGA_480x320 = 1,                                               // 3.2 480x320 TFTLCD Shield
+} DISPLAY_TYPE;
+
+#include "Settings.h"
+
+/*** GENERAL CONFIGURATION *******************************/
+
+// Font declarations
 extern uint8_t BigFont[];
 extern uint8_t SmallFont[];
 extern uint8_t SevenSegmentFull[];
 
-/*** GENERAL CONFIGURATION *******************************/
-
+// Fast ADC for 12bit readings
 #define FASTADC 1
 
 const int minAzimut = 0;
 const int maxAzimut = 359;
 const int rotatorStart = 1847;
 const int rotatorStop = 2245;
+
+/*** ENUMERATORS *****************************************/
 
 typedef enum {
     black   = 0x0000,
@@ -79,7 +84,7 @@ typedef enum {
     Held = 2,                                                           // Currently unused
 } BUTTON_STATE;
 
-int X, Y, dm;
+/*** FUNCTION DECLARATIONS *******************************/
 
 inline void InitializeDisplay(int displayType);                         // Generic display initialization
 inline void ConfigureIOPins();                                          // Pins initialization
@@ -97,6 +102,8 @@ void BeamSetting();                                                     // Azimu
 inline void BeamDirControl();                                           // Azimut rotor potentiometer read
 int Read12bit(uint8_t pin);                                             // 12-bits oversampled analogread 
 
+/*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
+
 typedef struct {
     int DigitalPin;
     void (*EventFunction)();
@@ -108,7 +115,11 @@ const BUTTON_MAP ButtonsMap[] = {
     { SpeedControlSwitch, AutoManualToggle },
 };
 
+/*** GLOBAL VARIABLES ************************************/
+
 const float PIover180 = 3.1415926535897932384626433832795 / 180;
+
+int X, Y, dm;
 
 UTFT utftDisplay(ILI9481, 38, 39, 40, 41);
 UTFT_Geometry geo(&utftDisplay);
@@ -120,6 +131,8 @@ int spdValue = 1;                                                       // Rotat
 PINflag StartStopFlag = Stop;
 PINflag SpeedModeFlag = Manual;
 PINflag UserActionFlag = Setting;
+
+/*** DEBUG MESSAGE FUNCTION HELPERS **********************/
 
 #ifdef DEBUG
     void DebugPrintInt(const unsigned char* expr, const int& pValue)
@@ -137,6 +150,7 @@ PINflag UserActionFlag = Setting;
     #define DebugPrintMessage(...) (void(0))
 #endif
 
+// Arduino board bootstrap setup
 void setup() {
     Serial.begin(9600);
 
@@ -160,6 +174,7 @@ void setup() {
     BeamDirControl();
 }
 
+// Main loop
 void loop() {
     DebugPrintMessage("---------------------------- Cycling loop() START ----------------------------\n");
     DebugPrintInt("RAW value of rotator potentiometer == %d\n", Read12bit(rotatorSensor));
@@ -180,6 +195,7 @@ void loop() {
     #endif
 }
 
+// (Re)draw the azimutal beam direction
 void BeamDirControl() {
     int rawAngle;
     Colors color = green;
@@ -194,6 +210,7 @@ void BeamDirControl() {
     UserPrintAngle(0, 113, beamDir, color);
 }
 
+// (Re)draw the azimutal beam setting direction
 void BeamSetting() {
     int rawAngle;
     Colors color = green;
@@ -208,12 +225,14 @@ void BeamSetting() {
     UserPrintAngle(0, 213, beamSet, color);
 }
 
+// Toggles the Set/Confirm state [CB]
 void UserSetConfirmToggle() {
     DebugPrintInt("Status of UserActionFlag == %d\nUserActionSwitch has been pushed\n", UserActionFlag);
     UserActionFlag = (UserActionFlag == Setting ? Confirmed : Setting);
     DebugPrintInt("New status of UserActionFlag == %d\n", UserActionFlag);
 }
 
+// Toggles the Start/Stop state [CB]
 void StartStopToggle() {
     DebugPrintInt("Status of the start/stop flag == %d\nStartStopSwitch has been pushed\n", StartStopFlag);
     StartStopFlag = (StartStopFlag == Stop ? Start : Stop);
@@ -244,6 +263,7 @@ void StartStopAction() {
     DebugPrintMessage("Exiting StartStopAction()\n");
 }
 
+// Toggles the Auto/Manual state [CB]
 void AutoManualToggle() {
     DebugPrintInt("Status of the Auto/Manual flag == %d\nSpeedControlSwitch has been pushed\n", SpeedModeFlag);
     SpeedModeFlag = (SpeedModeFlag == Manual ? Auto : Manual);
@@ -305,6 +325,7 @@ void CheckButtons()
     }
 }
 
+// Initializes the TFTLCD 3.2 HVGA 480x320 display shield
 void InitializeDisplayHVGA480x320() {
     X = 290;
     Y = 160;
@@ -328,12 +349,14 @@ void InitializeDisplayHVGA480x320() {
     UserPrint((X-(dm+30)), (Y-7), "W", red);
 }
 
+// Select the proper initalization for the selected display type
 void InitializeDisplay(int displayNumber) {
     switch (displayNumber) {
         case TFT_HVGA_480x320: InitializeDisplayHVGA480x320(); break;
     }
 }
 
+// Initialize the pin configuration
 void ConfigureIOPins() {
     pinMode(StartStopSwitch, INPUT);
     pinMode(UserActionSwitch, INPUT);
@@ -352,6 +375,7 @@ void UserPrint(int x, int y, String userData, Colors COLOR) {
     utftDisplay.print(userData, x, y);
 }
 
+// Draw the screen overlay
 void DrawInitialScreen() {
     int dxOuter, dyOuter, dxinner, dyinner;
     utftDisplay.setColor(0, 255, 0);
@@ -371,6 +395,7 @@ void DrawInitialScreen() {
     }
 }
 
+// Draw the beam
 void DrawBeamHead(int angle, HeadType headStyle, Action toDo) {
     static boolean initialized = false;
     static float dist[360];
@@ -430,6 +455,7 @@ void DrawBeamHead(int angle, HeadType headStyle, Action toDo) {
     utftDisplay.fillCircle(X, Y, 9);
 }
 
+// Print the angle
 void UserPrintAngle (int x, int y, int userAngle, Colors COLOR) {
     char angle[4];                                                      // 3 digit + null string terminator (\0)
     sprintf(angle, "%03d", userAngle);
@@ -438,6 +464,7 @@ void UserPrintAngle (int x, int y, int userAngle, Colors COLOR) {
     utftDisplay.print(angle, x, y);
 }
 
+// Multisampling for 12bit readings
 int Read12bit(uint8_t pin) {
     int Result = 0;
     analogRead(pin);                                                    // Switch ADC
