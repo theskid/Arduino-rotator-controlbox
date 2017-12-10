@@ -221,6 +221,7 @@ void StartStopToggle() {
 }
 
 void StartStopAction() {
+    DebugPrintMessage("Entering StartStopAction()\n");
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
     char msg[5] = "    ";
@@ -240,6 +241,7 @@ void StartStopAction() {
     utftDisplay.setColor(yellow);
     utftDisplay.setFont(BigFont);
     utftDisplay.print(msg, RIGHT, 25);
+    DebugPrintMessage("Exiting StartStopAction()\n");
 }
 
 void AutoManualToggle() {
@@ -249,6 +251,7 @@ void AutoManualToggle() {
 }
 
 void AutoManualAction() {
+    DebugPrintMessage("Entering AutoManualAction()\n");
     int rawSpdValue;
     if (!SpeedModeFlag) {
         if (StartStopFlag == Stop) {
@@ -277,6 +280,7 @@ void AutoManualAction() {
         utftDisplay.setFont(BigFont);
         utftDisplay.print("  Auto ", RIGHT, 12); 
     }
+    DebugPrintMessage("Exiting AutoManualAction()\n");
 }
 
 // Checks buttons status and fires corresponding events
