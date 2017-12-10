@@ -88,11 +88,11 @@ void UserPrint (int x, int y, String userData, Colors COLOR);		// scrittura dell
 void DrawBeamHead(int angle, HeadType headStyle, Action toDo);		// disegno delle lancette
 void UserPrintAngle (int x, int y, int userAngle, Colors COLOR);	// print degli angoli con font SevenSegmentFull
 inline void CheckButtons();
-void StartStopToggle();										// cambia la flag alla pressione del pulsante start/stop
+void StartStopToggle();												// cambia la flag alla pressione del pulsante start/stop
 inline void StartStopAction();										// effettua le azioni da compiere a seconda del flag start/stop
-void AutoManualToggle();										// cambia la flag alla pressione del pulsante auto/manual
+void AutoManualToggle();											// cambia la flag alla pressione del pulsante auto/manual
 inline void AutoManualAction();										// effettua le azioni da compiere a seconda del flag auto/manual
-void UserSetConfirmToggle();									// cambia la flag alla pressione del pulsante user set/confirm
+void UserSetConfirmToggle();										// cambia la flag alla pressione del pulsante user set/confirm
 void BeamSetting();													// effettua la lettura del potenziometro per il settaggio dell'azimut
 inline void BeamDirControl();										// effettua la lettura del potenziometro sotto il rotore dell'azimut
 int Read12bit(uint8_t pin);											// 12-bits oversampled analogread 
