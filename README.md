@@ -10,6 +10,6 @@ Both need to be installed in your Arduino compiler library directory.
 
 ## Compilation
 
-In order to compile and install this project, you need to edit the configuration file (**Settings.h**). You can find a sample configuration provided with the project (**Settings_sample.h**).
+In order to compile and install this project, you need to edit create a configuration file (**Settings.h**). You can find a sample configuration provided with the project (**Settings_sample.h**).
 
-It is still a WIP and currently developed and tested on an **ATMega 2560** only.
+ARC is still a WIP and currently developed and tested on an **ATMega 2560** only.
