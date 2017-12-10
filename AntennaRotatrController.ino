@@ -404,7 +404,7 @@ void DrawBeamHead(int angle, HeadType headStyle, Action toDo) {
     geo.drawTriangle(x3, y3, X, Y, x4, y4);
   }
   utftDisplay.setColor(colorDir);
-  utftDisplay.fillCircle(320, 160, 9);
+  utftDisplay.fillCircle(X, Y, 9);
 }
 
 void UserPrintAngle (int x, int y, int userAngle, Colors COLOR) {
