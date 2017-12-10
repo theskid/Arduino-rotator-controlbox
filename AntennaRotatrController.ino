@@ -9,29 +9,16 @@
 #include <UTFT.h>           
 #include <UTFT_Geometry.h>  
 
-#define FASTADC 1
+/*** USER CONFIGURATION **********************************/
 
-/*#################### USER Configuration ####################
-#                                                            #
-#  type of display used                                      #
-#  DT value rappreset the display that you are using         #
-#  DT == 1  : 3.2 480x320 TFTLCD Shild                       #
-#                                                            #
-############################################################*/
+typedef enum {
+  TFT_HVGA_480x320 = 1,                                             // 3.2 480x320 TFTLCD Shield
+} DISPLAY_TYPE;
 
-const int DT = 1;               // Display used
-const String QRZ = "IU6CRH";    // Your QRZ
-const String NAME = "Diego";    // Your Name
-#define DEBUG                 // (Un)comment to enable/disable debug mode
-const int minAzimut = 0;
-const int maxAzimut = 359;
-const int rotatorStart = 1847;
-const int rotatorStop = 2245;
-const int zumEncoder = 4;
+#include "Settings.h"
 
-// ################# END USER Configuration #################*/
+/*** PIN DESIGNATION *************************************/
 
-// ################# PIN Designation ################//
 const int StartStopSwitch = 12;
 const int UserActionSwitch = 8;
 const int SpeedControlSwitch = 13;
@@ -45,6 +32,15 @@ const uint8_t rotatorSensor = A2;
 extern uint8_t BigFont[];
 extern uint8_t SmallFont[];
 extern uint8_t SevenSegmentFull[];
+
+/*** GENERAL CONFIGURATION *******************************/
+
+#define FASTADC 1
+
+const int minAzimut = 0;
+const int maxAzimut = 359;
+const int rotatorStart = 1847;
+const int rotatorStop = 2245;
 
 typedef enum {
   black   = 0x0000,
@@ -138,7 +134,7 @@ void setup() {
     fastadc_cbit(ADCSRA, ADPS0);
   #endif
 
-  InitializeDisplay(DT);
+  InitializeDisplay(DisplayType);
   DrawInitialScreen();
   ConfigureIOPins();
   BeamSetting();
@@ -228,11 +224,11 @@ void StartStopAction() {
   }
   else if ((beamDir < beamSet) && (StartStopFlag)){
     cw = HIGH;
-    msg[1] = 'C'; msg[2] = 'W';
+    strcat(&msg[1], "CW ");
   }
   else if ((beamDir > beamSet) && (StartStopFlag)){
     ccw = HIGH;
-    msg[0] = 'C'; msg[1] = 'C'; msg[2] = 'W';
+    strcat(&msg[0], "CCW ");
   }
   digitalWrite(CWMotor, cw);
   digitalWrite(CCWMotor, ccw);
@@ -306,8 +302,8 @@ void InitializeDisplayHVGA480x320() {
 }
 
 void InitializeDisplay(int displayNumber) {
-  if (1 == displayNumber) {
-    InitializeDisplayHVGA480x320();
+  switch (displayNumber) {
+    case TFT_HVGA_480x320: InitializeDisplayHVGA480x320(); break;
   }
 }
 
