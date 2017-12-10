@@ -282,11 +282,11 @@ void AutoManualAction() {
         utftDisplay.print("Manual ", RIGHT, 12);
     } else {
         if (StartStopFlag == Start) {
-            int rotationValue = (abs(beamSet - beamDir)) << 2;
+            int rotationValue = abs(beamSet - beamDir);
             if (10 < rotationValue)
                 spdValue = 255;
             else
-                spdValue = map(rotationValue, 0, 1023, 0, 127);
+                spdValue = map(rotationValue, 0, 10, 20, 220);
         } else {
             spdValue = 0;
         }
