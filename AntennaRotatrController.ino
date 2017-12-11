@@ -101,6 +101,7 @@ void UserSetConfirmToggle();                                            // Set/C
 void BeamSetting();                                                     // Azimut setting potentiometer read
 inline void BeamDirControl();                                           // Azimut rotor potentiometer read
 int Read12bit(uint8_t pin);                                             // 12-bits oversampled analogread 
+void SpdMeeter (int spd);                                               // Speedmeater drawing helper function
 
 /*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
 
@@ -119,7 +120,7 @@ const BUTTON_MAP ButtonsMap[] = {
 
 const float PIover180 = 3.1415926535897932384626433832795 / 180;
 
-int X, Y, dm;
+int X, Y, dm, upperLeftCornerX, upperLeftCornerY, lowerRightCornerX, lowerRightCornerY;
 
 UTFT utftDisplay(ILI9481, 38, 39, 40, 41);
 UTFT_Geometry geo(&utftDisplay);
@@ -204,6 +205,12 @@ void BeamDirControl() {
         DrawBeamHead(beamDir, BeamDIR, Delete);
         rawAngle = Read12bit(rotatorSensor);
         beamDir = map(rawAngle, rotatorStart, rotatorStop, minAzimut, maxAzimut);
+        if (beamDir < 0) {
+          beamDir = 360 - (abs(beamDir % 360));
+        }
+        if (beamDir > 359) {
+          beamDir = beamDir % 360;
+        }
         DrawBeamHead(beamDir, BeamDIR, Create);
         color = yellow;
     }
@@ -295,6 +302,10 @@ void AutoManualAction() {
         utftDisplay.setFont(BigFont);
         utftDisplay.print("  Auto ", RIGHT, 12); 
     }
+    utftDisplay.setColor(yellow);
+    utftDisplay.setFont(BigFont);
+    utftDisplay.printNumI(spdValue,RIGHT, 38,3,' ');
+    SpdMeeter (spdValue);
     DebugPrintMessage("Exiting AutoManualAction()\n");
 }
 
@@ -322,9 +333,13 @@ void CheckButtons()
 
 // Initializes the TFTLCD 3.2 HVGA 480x320 display shield
 void InitializeDisplayHVGA480x320() {
-    X = 290;
+    X = 285;
     Y = 160;
     dm = 120;
+    upperLeftCornerX = 445;
+    upperLeftCornerY = 58;
+    lowerRightCornerX = 470;
+    lowerRightCornerY = 310;
     utftDisplay.InitLCD(LANDSCAPE);
     utftDisplay.clrScr();
     utftDisplay.setFont(BigFont);
@@ -342,6 +357,8 @@ void InitializeDisplayHVGA480x320() {
     UserPrint((X-8), (Y+(dm+15)), "S", red);
     UserPrint((X+(dm+13)), (Y-7), "E", red);
     UserPrint((X-(dm+30)), (Y-7), "W", red);
+    utftDisplay.setColor (green);
+    utftDisplay.drawRect (upperLeftCornerX,upperLeftCornerY,lowerRightCornerX,lowerRightCornerY);
 }
 
 // Select the proper initalization for the selected display type
@@ -469,3 +486,16 @@ int Read12bit(uint8_t pin) {
     Result >>= 2;                                                       // Divide by 4 for 12 bit value
     return Result;
 }
+
+void SpdMeeter (int spd) {
+  int maxY = upperLeftCornerY+2; 
+  int minY = lowerRightCornerY-2;
+  int uprY = map (spdValue, 0, 255, minY, maxY);
+  int uprX = upperLeftCornerX+2;
+  int minX = lowerRightCornerX-2;
+  utftDisplay.setColor (black);
+  utftDisplay.fillRect(uprX, maxY, minX, uprY);
+  utftDisplay.setColor (red);
+  utftDisplay.fillRect(uprX, uprY, minX, minY);  
+}
+
