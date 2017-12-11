@@ -102,6 +102,7 @@ void BeamSetting();                                                     // Azimu
 inline void BeamDirControl();                                           // Azimut rotor potentiometer read
 int Read12bit(uint8_t pin);                                             // 12-bits oversampled analogread 
 void SpdMeeter (int spd);                                               // Speedmeater drawing helper function
+void overlapWarning (int condition);
 
 /*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
 
@@ -199,6 +200,7 @@ void loop() {
 // (Re)draw the azimutal beam direction
 void BeamDirControl() {
     int rawAngle;
+    int over = 0;
     Colors color = green;
     if (beamSet != beamDir) {
         // Replace the old Azimut direction beam with the current direction
@@ -207,13 +209,16 @@ void BeamDirControl() {
         beamDir = map(rawAngle, rotatorStart, rotatorStop, minAzimut, maxAzimut);
         if (beamDir < 0) {
           beamDir = 360 - (abs(beamDir % 360));
+          over = -1;
         }
         if (beamDir > 359) {
           beamDir = beamDir % 360;
+          over = 1;
         }
         DrawBeamHead(beamDir, BeamDIR, Create);
         color = yellow;
     }
+    overlapWarning (over);
     UserPrintAngle(0, 113, beamDir, color);
 }
 
@@ -487,6 +492,7 @@ int Read12bit(uint8_t pin) {
     return Result;
 }
 
+// Draw the speed with a s-meeter
 void SpdMeeter (int spd) {
   int maxY = upperLeftCornerY+2; 
   int minY = lowerRightCornerY-2;
@@ -497,5 +503,21 @@ void SpdMeeter (int spd) {
   utftDisplay.fillRect(uprX, maxY, minX, uprY);
   utftDisplay.setColor (red);
   utftDisplay.fillRect(uprX, uprY, minX, minY);  
+}
+
+void overlapWarning (int condition) {
+  if (condition != 0) {
+    utftDisplay.setColor (red);
+    utftDisplay.setFont(BigFont);
+    utftDisplay.print("OVER", 345, 292);
+    if (condition < 0) {
+      geo.fillTriangle(340, 310, 340, 290, 320, 300);
+    } else {
+      geo.fillTriangle(414, 310, 414, 290, 434, 300);
+    }
+  } else {
+    utftDisplay.setColor (black);
+    utftDisplay.fillRect(320,290,434,310);
+  }
 }
 
