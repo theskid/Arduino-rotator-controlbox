@@ -126,20 +126,18 @@ int beamSet = 1;                                                        // Beam 
 int spdValue = 1;                                                       // Rotation speed
 
 PINflag StartStopFlag = Stop;
-PINflag SpeedModeFlag = Manual;
+PINflag SpeedModeFlag = Auto;
 PINflag UserActionFlag = Setting;
 
 /*** DEBUG MESSAGE FUNCTION HELPERS **********************/
 
 #ifdef DEBUG
-    void DebugPrintInt(const unsigned char* expr, const int& pValue)
-    {
+    void DebugPrintInt(const unsigned char* expr, const int& pValue) {
         char buffer[512] = { 0 };
         sprintf(buffer, expr, pValue);
         Serial.print(buffer);
     }
-    inline void DebugPrintMessage(const char* expr)
-    {
+    inline void DebugPrintMessage(const char* expr) {
         Serial.print(expr);
     }
 #else
@@ -251,14 +249,14 @@ void StartStopAction() {
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
     char msg[5] = "    ";
-    if ((!StartStopFlag) || (beamDir == beamSet)){
+    if ((!StartStopFlag) || (beamDir == beamSet)) {
         StartStopFlag = Stop;
     }
-    else if ((beamDir < beamSet) && (StartStopFlag)){
+    else if ((beamDir < beamSet) && (StartStopFlag)) {
         cw = HIGH;
         strcat(&msg[1], "CW ");
     }
-    else if ((beamDir > beamSet) && (StartStopFlag)){
+    else if ((beamDir > beamSet) && (StartStopFlag)) {
         ccw = HIGH;
         strcat(&msg[0], "CCW ");
     }
@@ -310,22 +308,17 @@ void AutoManualAction() {
 }
 
 // Checks buttons status and fires corresponding events
-void CheckButtons()
-{
+void CheckButtons() {
     // Keep track of buttons status, to avoid trigger ghosting/multi-fire
     static BUTTON_STATE buttonState[sizeof(ButtonsMap)] = { BUTTON_STATE::Released };
-    for (int c = 0; c < sizeof(ButtonsMap); c++)
-    {
+    for (int c = 0; c < sizeof(ButtonsMap); c++) {
         uint8_t state = digitalRead(ButtonsMap[c].DigitalPin);
-
         // Trigger button event on release
-        if ((HIGH == state) && (BUTTON_STATE::Released < buttonState[c]))
-        {
+        if ((HIGH == state) && (BUTTON_STATE::Released < buttonState[c])) {
             buttonState[c] = BUTTON_STATE::Released;
             (*ButtonsMap[c].EventFunction)();
         }
-        else if ((LOW == state) && (BUTTON_STATE::Released == buttonState[c]))
-        {
+        else if ((LOW == state) && (BUTTON_STATE::Released == buttonState[c])) {
             buttonState[c] = BUTTON_STATE::Pressed;
         }
     }
@@ -408,8 +401,7 @@ void DrawInitialScreen() {
 }
 
 // Draw the beam
-void DrawBeamHead(const int& angle, const BHTYPE& type, const boolean& bErase)
-{
+void DrawBeamHead(const int& angle, const BHTYPE& type, const boolean& bErase) {
     static boolean bInitialized = false;
     static float dist[360];
     static int dx[360], dy[360], x2[360], y2[360];
@@ -418,13 +410,10 @@ void DrawBeamHead(const int& angle, const BHTYPE& type, const boolean& bErase)
     int w = 10;
     Colors colorDir = red;
     Colors colorSet = green;
-
     // For faster drawing and reduced computation, we pre-build a lookup tables for the heavy lifting computation
-    if (!bInitialized)
-    {
+    if (!bInitialized) {
         bInitialized = true;
-        for (int a = 0; a < 360; a++)
-        {
+        for (int a = 0; a < 360; a++) {
             x2[a] = (dm * .9 * cos((a - 90) * PIover180)) + X;
             y2[a] = (dm * .9 * sin((a - 90) * PIover180)) + Y;
             dist[a] = sqrt((X - x2[a]) * (X - x2[a]) + (Y - y2[a]) * (Y - y2[a]));
@@ -432,26 +421,20 @@ void DrawBeamHead(const int& angle, const BHTYPE& type, const boolean& bErase)
             dy[a] = Y + (w / 6) * (y2[a] - Y) / h;
         }
     }
-
     x2a = X - dx[angle];
     y2a = dy[angle] - Y;
     x3 = y2a + dx[angle];
     y3 = x2a + dy[angle];
     x4 = dx[angle] - y2a;
     y4 = dy[angle] - x2a;
-
-    if (bErase)
-    {
+    if (bErase) {
         utftDisplay.setColor(black);
         geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
         geo.drawTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
         geo.fillTriangle(x3, y3, X, Y, x4, y4);
         geo.drawTriangle(x3, y3, X, Y, x4, y4);
-    }
-    else
-    {
-        switch (type)
-        {
+    } else {
+        switch (type) {
             case BHTYPE::BeamDIR:
                 utftDisplay.setColor(colorDir);
                 geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
