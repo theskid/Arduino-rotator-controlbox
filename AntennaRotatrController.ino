@@ -61,13 +61,8 @@ typedef enum {
 
 typedef enum {
     BeamDIR = 1,
-    BeamSET = 0
-} HeadType;
-
-typedef enum {
-    Create = 1,
-    Delete = 0
-} Action;
+    BeamSET = 2,
+} BHTYPE;
 
 typedef enum {
     Start     = 1,
@@ -90,7 +85,7 @@ inline void InitializeDisplay(int displayType);                         // Gener
 inline void ConfigureIOPins();                                          // Pins initialization
 inline void DrawInitialScreen();                                        // Initial screen overlay
 void UserPrint(int x, int y, String userData, Colors COLOR);            // String printer helper function
-void DrawBeamHead(int angle, HeadType headStyle, Action toDo);          // Beam drawing helper function
+void DrawBeamHead(const int& angle, const BHTYPE& type, const boolean& bErase = false);     // Beam drawing helper function
 void UserPrintAngle(int x, int y, int userAngle, Colors COLOR);         // Angle drawing through SevenSegmentFull font
 inline void CheckButtons();                                             // Button tracking
 void StartStopToggle();                                                 // Start/Stop button event toggle
@@ -100,9 +95,9 @@ inline void AutoManualAction();                                         // Auto/
 void UserSetConfirmToggle();                                            // Set/Confirm button event toggle
 void BeamSetting();                                                     // Azimut setting potentiometer read
 inline void BeamDirControl();                                           // Azimut rotor potentiometer read
-int Read12bit(uint8_t pin);                                             // 12-bits oversampled analogread 
-void SpdMeeter (int spd);                                               // Speedmeater drawing helper function
-void overlapWarning (int condition);
+int AnalogRead12Bits(uint8_t pin);                                      // 12-bits oversampled analogread 
+void SpeedMeter (int spd);                                              // Speedmeater drawing helper function
+void OverlapWarning (int condition);
 
 /*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
 
@@ -179,7 +174,7 @@ void setup() {
 // Main loop
 void loop() {
     DebugPrintMessage("---------------------------- Cycling loop() START ----------------------------\n");
-    DebugPrintInt("RAW value of rotator potentiometer == %d\n", Read12bit(rotatorSensor));
+    DebugPrintInt("RAW value of rotator potentiometer == %d\n", AnalogRead12Bits(rotatorSensor));
     DebugPrintInt("Value of the start/stop flag == %d\n", StartStopFlag);
     DebugPrintInt("Value of the Auto/Manual flag == %d\n", SpeedModeFlag);
     DebugPrintInt("Value of the User Action flag == %d\n", UserActionFlag);
@@ -204,8 +199,8 @@ void BeamDirControl() {
     Colors color = green;
     if (beamSet != beamDir) {
         // Replace the old Azimut direction beam with the current direction
-        DrawBeamHead(beamDir, BeamDIR, Delete);
-        rawAngle = Read12bit(rotatorSensor);
+        DrawBeamHead(beamDir, BeamDIR, true);
+        rawAngle = AnalogRead12Bits(rotatorSensor);
         beamDir = map(rawAngle, rotatorStart, rotatorStop, minAzimut, maxAzimut);
         if (beamDir < 0) {
           beamDir = 360 - (abs(beamDir % 360));
@@ -215,10 +210,10 @@ void BeamDirControl() {
           beamDir = beamDir % 360;
           over = 1;
         }
-        DrawBeamHead(beamDir, BeamDIR, Create);
+        DrawBeamHead(beamDir, BeamDIR);
         color = yellow;
     }
-    overlapWarning (over);
+    OverlapWarning (over);
     UserPrintAngle(0, 113, beamDir, color);
 }
 
@@ -228,10 +223,10 @@ void BeamSetting() {
     Colors color = green;
     if (UserActionFlag == Setting) {
         // Replace the old Azimut setting beam with the current direction
-        DrawBeamHead(beamSet, BeamSET, Delete);
+        DrawBeamHead(beamSet, BeamSET, true);
         rawAngle = analogRead(beamSetPotentiometer);
         beamSet = map(rawAngle, 0, 1023, minAzimut, maxAzimut);
-        DrawBeamHead(beamSet, BeamSET, Create);
+        DrawBeamHead(beamSet, BeamSET);
         color = yellow;
     }
     UserPrintAngle(0, 213, beamSet, color);
@@ -310,7 +305,7 @@ void AutoManualAction() {
     utftDisplay.setColor(yellow);
     utftDisplay.setFont(BigFont);
     utftDisplay.printNumI(spdValue,RIGHT, 38,3,' ');
-    SpdMeeter (spdValue);
+    SpeedMeter (spdValue);
     DebugPrintMessage("Exiting AutoManualAction()\n");
 }
 
@@ -413,19 +408,21 @@ void DrawInitialScreen() {
 }
 
 // Draw the beam
-void DrawBeamHead(int angle, HeadType headStyle, Action toDo) {
-    static boolean initialized = false;
+void DrawBeamHead(const int& angle, const BHTYPE& type, const boolean& bErase)
+{
+    static boolean bInitialized = false;
     static float dist[360];
     static int dx[360], dy[360], x2[360], y2[360];
     int x2a, y2a, x3, y3, x4, y4;
-    int h = (headStyle ? 12 : 10);
+    int h = (BHTYPE::BeamDIR == type ? 12 : 10);
     int w = 10;
     Colors colorDir = red;
     Colors colorSet = green;
 
     // For faster drawing and reduced computation, we pre-build a lookup tables for the heavy lifting computation
-    if (!initialized) {
-        initialized = true;
+    if (!bInitialized)
+    {
+        bInitialized = true;
         for (int a = 0; a < 360; a++)
         {
             x2[a] = (dm * .9 * cos((a - 90) * PIover180)) + X;
@@ -443,30 +440,40 @@ void DrawBeamHead(int angle, HeadType headStyle, Action toDo) {
     x4 = dx[angle] - y2a;
     y4 = dy[angle] - x2a;
 
-    if (toDo) {
-        if (headStyle) {
-            utftDisplay.setColor(colorDir);
-            geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
-            geo.drawTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
-            geo.fillTriangle(x3, y3, X, Y, x4, y4);
-            geo.drawTriangle(x3, y3, X, Y, x4, y4);
-        } else {
-            utftDisplay.setColor(black);
-            geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
-            geo.fillTriangle(x3, y3, X, Y, x4, y4);
-            utftDisplay.setColor(colorSet);
-            utftDisplay.drawLine(x3, y3, X, Y);
-            utftDisplay.drawLine(X, Y, x4, y4);
-            utftDisplay.drawLine(x4, y4, x2[angle], y2[angle]);
-            utftDisplay.drawLine(x2[angle], y2[angle], x3, y3);
-            utftDisplay.drawLine(X, Y, x2[angle], y2[angle]);
-        }
-    } else {
+    if (bErase)
+    {
         utftDisplay.setColor(black);
         geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
         geo.drawTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
         geo.fillTriangle(x3, y3, X, Y, x4, y4);
         geo.drawTriangle(x3, y3, X, Y, x4, y4);
+    }
+    else
+    {
+        switch (type)
+        {
+            case BHTYPE::BeamDIR:
+                utftDisplay.setColor(colorDir);
+                geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
+                geo.drawTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
+                geo.fillTriangle(x3, y3, X, Y, x4, y4);
+                geo.drawTriangle(x3, y3, X, Y, x4, y4);
+                break;
+            case BHTYPE::BeamSET:
+                utftDisplay.setColor(black);
+                geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
+                geo.fillTriangle(x3, y3, X, Y, x4, y4);
+                utftDisplay.setColor(colorSet);
+                utftDisplay.drawLine(x3, y3, X, Y);
+                utftDisplay.drawLine(X, Y, x4, y4);
+                utftDisplay.drawLine(x4, y4, x2[angle], y2[angle]);
+                utftDisplay.drawLine(x2[angle], y2[angle], x3, y3);
+                utftDisplay.drawLine(X, Y, x2[angle], y2[angle]);
+                break;
+            default:
+                DebugPrintInt("Invalid beam type drawing specified: %d\n", headStyle);
+                break;
+        }
     }
     utftDisplay.setColor(colorDir);
     utftDisplay.fillCircle(X, Y, 9);
@@ -482,7 +489,7 @@ void UserPrintAngle (int x, int y, int userAngle, Colors COLOR) {
 }
 
 // Multisampling for 12bit readings
-int Read12bit(uint8_t pin) {
+int AnalogRead12Bits(uint8_t pin) {
     int Result = 0;
     analogRead(pin);                                                    // Switch ADC
     for (int i = 0; i < 16; i++) {                                      // Read 16 times
@@ -493,7 +500,7 @@ int Read12bit(uint8_t pin) {
 }
 
 // Draw the speed with a s-meeter
-void SpdMeeter (int spd) {
+void SpeedMeter (int spd) {
   int maxY = upperLeftCornerY+2; 
   int minY = lowerRightCornerY-2;
   int uprY = map (spdValue, 0, 255, minY, maxY);
@@ -505,7 +512,7 @@ void SpdMeeter (int spd) {
   utftDisplay.fillRect(uprX, uprY, minX, minY);  
 }
 
-void overlapWarning (int condition) {
+void OverlapWarning (int condition) {
   if (condition != 0) {
     utftDisplay.setColor (red);
     utftDisplay.setFont(BigFont);
