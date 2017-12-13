@@ -76,7 +76,7 @@ inline void InitializeDisplay(int displayType);                         // Gener
 inline void ConfigureIOPins();                                          // Pins initialization
 inline void DrawInitialScreen();                                        // Initial screen overlay
 void UserPrint(int x, int y, String userData, Colors COLOR);            // String printer helper function
-void DrawBeamHead(const int& angle, const BHTYPE& type, const boolean& bErase = false);     // Beam drawing helper function
+void DrawBeamHead(const int&, const BHTYPE&, const boolean& = false);   // Beam drawing helper function
 void UserPrintAngle(int x, int y, int userAngle, Colors COLOR);         // Angle drawing through SevenSegmentFull font
 inline void CheckButtons();                                             // Button tracking
 void StartStopToggle();                                                 // Start/Stop button event toggle
