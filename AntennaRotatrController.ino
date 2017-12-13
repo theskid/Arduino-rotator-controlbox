@@ -488,7 +488,7 @@ void OverlapWarning () {
     int maxY = overWarnSig.tl.y;
     int x = minX;
     int width = (minY - maxY);
-    int mid = maxY + width >> 1;
+    int mid = maxY + (width >> 1);
     if (overWarn != 0) {
         utftDisplay.setColor (red);
         utftDisplay.setFont(BigFont);
