@@ -126,7 +126,7 @@ int beamSet = 1;                                                        // Beam 
 int spdValue = 1;                                                       // Rotation speed
 
 boolean bMoveAntenna = false;                                           // Start Stop flag
-PINflag SpeedModeFlag = Auto;
+boolean bSpeedModeAuto = true;                                          // Speed Mode Flag
 boolean bChoosingNewAngle = true;                                       // User Action flag
 
 /*** DEBUG MESSAGE FUNCTION HELPERS **********************/
@@ -174,7 +174,7 @@ void loop() {
     DebugPrintMessage("---------------------------- Cycling loop() START ----------------------------\n");
     DebugPrintInt("RAW value of rotator potentiometer == %d\n", AnalogRead12Bits(rotatorSensor));
     DebugPrintInt("Value of the start/stop flag == %d\n", bMoveAntenna);
-    DebugPrintInt("Value of the Auto/Manual flag == %d\n", SpeedModeFlag);
+    DebugPrintInt("Value of the Auto/Manual flag == %d\n", bSpeedModeAuto);
     DebugPrintInt("Value of the User Action flag == %d\n", bChoosingNewAngle);
     DebugPrintInt("Value of the BEAM direction == %d\n", beamDir);
     DebugPrintInt("Value of the BEAM setting == %d\n", beamSet);
@@ -270,15 +270,15 @@ void StartStopAction() {
 
 // Toggles the Auto/Manual state [CB]
 void AutoManualToggle() {
-    DebugPrintInt("Status of the Auto/Manual flag == %d\nSpeedControlSwitch has been pushed\n", SpeedModeFlag);
-    SpeedModeFlag = (SpeedModeFlag == Manual ? Auto : Manual);
-    DebugPrintInt("New status of the Auto/Manual flag == %d\n", SpeedModeFlag);
+    DebugPrintInt("Status of the Auto/Manual flag == %d\nSpeedControlSwitch has been pushed\n", bSpeedModeAuto);
+    bSpeedModeAuto = !bSpeedModeAuto;
+    DebugPrintInt("New status of the Auto/Manual flag == %d\n", bSpeedModeAuto);
 }
 
 void AutoManualAction() {
     DebugPrintMessage("Entering AutoManualAction()\n");
     int rawSpdValue;
-    if (!SpeedModeFlag) {
+    if (!bSpeedModeAuto) {
         rawSpdValue = analogRead(spdSetPotentiometer);
         spdValue = map(rawSpdValue, 0, 1023, 0, 255);
         analogWrite(PWMSpeedControl, spdValue);
