@@ -43,7 +43,6 @@ const int minAzimut = 0;
 const int maxAzimut = 359;
 const int rotatorStart = 1847;
 const int rotatorStop = 2245;
-const int overLapTollerance = 15;
 
 /*** ENUMERATORS *****************************************/
 
@@ -241,15 +240,15 @@ void StartStopAction() {
     DebugPrint("Entering StartStopAction()\n");
     DebugPrintf("valore di overWarn == %d\n", overWarn);
     int inverse = 180;
-    int rightOver = minAzimut+overLapTollerance;
-    int leftOver = maxAzimut-overLapTollerance;
+    int rightOver = minAzimut+overlapTolerance;
+    int leftOver = maxAzimut-overlapTolerance;
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
     char msg[5] = "    ";
     if (bMoveAntenna) {
-        if (beamSet < minAzimut+overLapTollerance) {
+        if (beamSet < minAzimut+overlapTolerance) {
             inverse = beamSet + 180;
-        } else if (beamSet > maxAzimut-overLapTollerance) {
+        } else if (beamSet > maxAzimut-overlapTolerance) {
             inverse = beamSet - 180;
         }
         if (beamDir == beamSet) {
