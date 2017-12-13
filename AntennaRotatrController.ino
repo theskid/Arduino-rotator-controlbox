@@ -488,14 +488,13 @@ void OverlapWarning () {
     int maxY = overWarnSig.tl.y;
     int x = minX;
     int width = (minY - maxY);
-    int mid = width >> 1;
+    int mid = maxY + width >> 1;
     if (overWarn != 0) {
         utftDisplay.setColor (red);
         utftDisplay.setFont(BigFont);
         utftDisplay.print("OVER", minX+25, maxY+2);
-        if (overWarn < 0)
-        {
-            x = maxX
+        if (overWarn < 0) {
+            x = maxX;
             width = -width;
         }
         geo.fillTriangle(x+width, minY, x+width, maxY, x, mid);
