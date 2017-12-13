@@ -70,6 +70,23 @@ typedef enum {
     Held = 2,                                                           // Currently unused
 } BUTTON_STATE;
 
+/*** STRUCTURES ******************************************/
+
+typedef struct {
+    int DigitalPin;
+    void (*EventFunction)();
+} BUTTON_MAP;
+
+typedef struct {
+    int x;
+    int y;
+} POINT;
+
+typedef struct {
+    POINT tl;                                                           // Top left corner
+    POINT br;                                                           // Bottom right corner
+} AREA;
+
 /*** FUNCTION DECLARATIONS *******************************/
 
 inline void InitializeDisplay(int displayType);                         // Generic display initialization
@@ -92,11 +109,6 @@ void OverlapWarning (int condition);
 
 /*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
 
-typedef struct {
-    int DigitalPin;
-    void (*EventFunction)();
-} BUTTON_MAP;
-
 const BUTTON_MAP ButtonsMap[] = {
     { UserActionSwitch, UserSetConfirmToggle },
     { StartStopSwitch, StartStopToggle },
@@ -107,7 +119,8 @@ const BUTTON_MAP ButtonsMap[] = {
 
 const float PIover180 = 3.1415926535897932384626433832795 / 180;
 
-int X, Y, dm, upperLeftCornerX, upperLeftCornerY, lowerRightCornerX, lowerRightCornerY;
+int X, Y, dm;
+AREA speedMeter;
 
 UTFT utftDisplay(ILI9481, 38, 39, 40, 41);
 UTFT_Geometry geo(&utftDisplay);
@@ -123,7 +136,7 @@ boolean bChoosingNewAngle = true;                                       // User 
 /*** DEBUG MESSAGE FUNCTION HELPERS **********************/
 
 #ifdef DEBUG
-    void DebugPrintInt(const unsigned char* expr, const int& pValue) {
+    void DebugPrintInt(const char* expr, const int& pValue) {
         char buffer[512] = { 0 };
         sprintf(buffer, expr, pValue);
         Serial.print(buffer);
@@ -320,10 +333,7 @@ void InitializeDisplayHVGA480x320() {
     X = 285;
     Y = 160;
     dm = 120;
-    upperLeftCornerX = 445;
-    upperLeftCornerY = 58;
-    lowerRightCornerX = 470;
-    lowerRightCornerY = 310;
+    speedMeter = { { 445, 58 }, { 470, 310 } };
     utftDisplay.InitLCD(LANDSCAPE);
     utftDisplay.clrScr();
     utftDisplay.setFont(BigFont);
@@ -342,7 +352,7 @@ void InitializeDisplayHVGA480x320() {
     UserPrint((X+(dm+13)), (Y-7), "E", red);
     UserPrint((X-(dm+30)), (Y-7), "W", red);
     utftDisplay.setColor (green);
-    utftDisplay.drawRect (upperLeftCornerX,upperLeftCornerY,lowerRightCornerX,lowerRightCornerY);
+    utftDisplay.drawRect (speedMeter.tl.x,speedMeter.tl.y,speedMeter.br.x,speedMeter.br.y);
 }
 
 // Select the proper initalization for the selected display type
@@ -475,11 +485,11 @@ int AnalogRead12Bits(uint8_t pin) {
 
 // Draw the speed with a s-meeter
 void SpeedMeter (int spd) {
-  int maxY = upperLeftCornerY+2; 
-  int minY = lowerRightCornerY-2;
+  int maxY = speedMeter.tl.y+2; 
+  int minY = speedMeter.br.y-2;
   int uprY = map (spdValue, 0, 255, minY, maxY);
-  int uprX = upperLeftCornerX+2;
-  int minX = lowerRightCornerX-2;
+  int uprX = speedMeter.tl.x+2;
+  int minX = speedMeter.br.x-2;
   utftDisplay.setColor (black);
   utftDisplay.fillRect(uprX, maxY, minX, uprY);
   utftDisplay.setColor (red);
