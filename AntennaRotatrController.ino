@@ -9,6 +9,12 @@
 #include <UTFT.h>
 #include <UTFT_Geometry.h>
 
+typedef enum {                                                          // @TODO Going to remove the enum in favor of defines
+    TFT_HVGA_480x320 = 1,                                               // 3.2 480x320 TFTLCD Shield
+} DISPLAY_TYPE;
+#include "Settings.h"                                                   // User settings take precedence (flags and debug mode)
+#include "SerialPrint.h"                                                // Serial (and debug) print(f) helpers
+
 /*** PIN DESIGNATION *************************************/
 
 const int StartStopSwitch = 12;
@@ -21,14 +27,6 @@ const int CCWMotor = 11;
 const uint8_t spdSetPotentiometer = A0;
 const uint8_t beamSetPotentiometer = A1;
 const uint8_t rotatorSensor = A2;
-
-/*** USER CONFIGURATION **********************************/
-
-typedef enum {
-    TFT_HVGA_480x320 = 1,                                               // 3.2 480x320 TFTLCD Shield
-} DISPLAY_TYPE;
-
-#include "Settings.h"
 
 /*** GENERAL CONFIGURATION *******************************/
 
@@ -132,41 +130,6 @@ int spdValue = 1;                                                       // Rotat
 boolean bMoveAntenna = false;                                           // Start Stop flag
 boolean bSpeedModeAuto = true;                                          // Speed Mode Flag
 boolean bChoosingNewAngle = true;                                       // User Action flag
-
-/*** DEBUG MESSAGE FUNCTION HELPERS **********************/
-
-#define SPFBUFSIZE 1024
-// Serial.print wrapper enabling printf
-void SerialPrintf(const char* format, ...) {
-    char buffer[SPFBUFSIZE];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buffer, SPFBUFSIZE, format, args);
-    va_end(args);
-    Serial.print(buffer);
-}
-// Support for flash-stored strings – F(string_literal)
-void SerialPrintf(const __FlashStringHelper *format, ... ){
-    char buffer[SPFBUFSIZE];
-    va_list args;
-    va_start (args, format);
-    #ifdef __AVR__
-        vsnprintf_P(buffer, sizeof(buffer), (const char*)format, args);       // Progmem for AVR
-    #else
-        vsnprintf(buffer, sizeof(buffer), (const char*)format, args);         // For the rest of the world
-    #endif
-    va_end(args);
-    Serial.print(buffer);
-}
-#undef SPFBUFSIZE
-
-#ifdef DEBUG
-    #define DebugPrintf SerialPrintf
-    #define DebugPrint Serial.print
-#else
-    #define DebugPrintf(...) (void(0))
-    #define DebugPrint(...) (void(0))
-#endif
 
 // Arduino board bootstrap setup
 void setup() {
