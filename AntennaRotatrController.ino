@@ -151,9 +151,9 @@ void SerialPrintf(const __FlashStringHelper *format, ... ){
     va_list args;
     va_start (args, format);
     #ifdef __AVR__
-    vsnprintf_P(buffer, sizeof(buffer), (const char*)format, args);           // Progmem for AVR
+        vsnprintf_P(buffer, sizeof(buffer), (const char*)format, args);       // Progmem for AVR
     #else
-    vsnprintf(buffer, sizeof(buffer), (const char*)format, args);             // For the rest of the world
+        vsnprintf(buffer, sizeof(buffer), (const char*)format, args);         // For the rest of the world
     #endif
     va_end(args);
     Serial.print(buffer);
@@ -196,9 +196,9 @@ void setup() {
 void loop() {
     DebugPrint("---------------------------- Cycling loop() START ----------------------------\n");
     DebugPrintf("RAW value of rotator potentiometer == %d\n", AnalogRead12Bits(rotatorSensor));
-    DebugPrintf("Value of the start/stop flag == %d\n", bMoveAntenna);
-    DebugPrintf("Value of the Auto/Manual flag == %d\n", bSpeedModeAuto);
-    DebugPrintf("Value of the User Action flag == %d\n", bChoosingNewAngle);
+    DebugPrintf("Value of the start/stop flag == %s\n", bMoveAntenna ? "Start" : "Stop");
+    DebugPrintf("Value of the Auto/Manual flag == %s\n", bSpeedModeAuto ? "Automatic" : "Manual");
+    DebugPrintf("Value of the User Action flag == %s\n", bChoosingNewAngle ? "Setting" : "Confirmed");
     DebugPrintf("Value of the BEAM direction == %d\n", beamDir);
     DebugPrintf("Value of the BEAM setting == %d\n", beamSet);
     DebugPrintf("Value of the throttle setting == %d\n", spdValue);
@@ -529,4 +529,3 @@ void OverlapWarning(int condition) {
         utftDisplay.fillRect(320,290,434,310);
     }
 }
-
