@@ -127,7 +127,7 @@ int spdValue = 1;                                                       // Rotat
 
 PINflag StartStopFlag = Stop;
 PINflag SpeedModeFlag = Auto;
-PINflag UserActionFlag = Setting;
+boolean bChoosingNewAngle = true;                                       // User Action flag
 
 /*** DEBUG MESSAGE FUNCTION HELPERS **********************/
 
@@ -164,7 +164,7 @@ void setup() {
     DrawInitialScreen();
     ConfigureIOPins();
     BeamSetting();
-    UserActionFlag = Confirmed;
+    bChoosingNewAngle = false;
     BeamSetting();
     BeamDirControl();
 }
@@ -175,7 +175,7 @@ void loop() {
     DebugPrintInt("RAW value of rotator potentiometer == %d\n", AnalogRead12Bits(rotatorSensor));
     DebugPrintInt("Value of the start/stop flag == %d\n", StartStopFlag);
     DebugPrintInt("Value of the Auto/Manual flag == %d\n", SpeedModeFlag);
-    DebugPrintInt("Value of the User Action flag == %d\n", UserActionFlag);
+    DebugPrintInt("Value of the User Action flag == %d\n", bChoosingNewAngle);
     DebugPrintInt("Value of the BEAM direction == %d\n", beamDir);
     DebugPrintInt("Value of the BEAM setting == %d\n", beamSet);
     DebugPrintInt("Value of the throttle setting == %d\n", spdValue);
@@ -219,7 +219,7 @@ void BeamDirControl() {
 void BeamSetting() {
     int rawAngle;
     Colors color = green;
-    if (UserActionFlag == Setting) {
+    if (bChoosingNewAngle) {
         // Replace the old Azimut setting beam with the current direction
         DrawBeamHead(beamSet, BeamSET, true);
         rawAngle = analogRead(beamSetPotentiometer);
@@ -232,9 +232,9 @@ void BeamSetting() {
 
 // Toggles the Set/Confirm state [CB]
 void UserSetConfirmToggle() {
-    DebugPrintInt("Status of UserActionFlag == %d\nUserActionSwitch has been pushed\n", UserActionFlag);
-    UserActionFlag = (UserActionFlag == Setting ? Confirmed : Setting);
-    DebugPrintInt("New status of UserActionFlag == %d\n", UserActionFlag);
+    DebugPrintInt("Status of User Action flag == %d\nUserActionSwitch has been pushed\n", bChoosingNewAngle);
+    bChoosingNewAngle = !bChoosingNewAngle;
+    DebugPrintInt("New status of User Action flag == %d\n", bChoosingNewAngle);
 }
 
 // Toggles the Start/Stop state [CB]
