@@ -43,6 +43,7 @@ const int minAzimut = 0;
 const int maxAzimut = 359;
 const int rotatorStart = 1847;
 const int rotatorStop = 2245;
+const int overLapTollerance = 15;
 
 /*** ENUMERATORS *****************************************/
 
@@ -238,16 +239,39 @@ void AutoManualToggle() {
 
 void StartStopAction() {
     DebugPrint("Entering StartStopAction()\n");
+    DebugPrintf("valore di overWarn == %d\n", overWarn);
+    int inverse = 180;
+    int rightOver = minAzimut+overLapTollerance;
+    int leftOver = maxAzimut-overLapTollerance;
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
     char msg[5] = "    ";
     if (bMoveAntenna) {
+        if (beamSet < minAzimut+overLapTollerance) {
+            inverse = beamSet + 180;
+        } else if (beamSet > maxAzimut-overLapTollerance) {
+            inverse = beamSet - 180;
+        }
         if (beamDir == beamSet) {
             bMoveAntenna = false;
-        } else if (beamDir < beamSet) {
+        } else if (
+                ((beamDir < beamSet) && (inverse == 180) && (overWarn == 0)) ||                            // normale
+                ((beamSet < rightOver) && (overWarn == 1) && (beamDir < beamSet)) ||                       // destinazione e partenza sono a destra in over con partenza inferiore a destinazione OK
+                ((beamSet > leftOver) && (overWarn == -1) && (beamDir < beamSet)) ||                       // destinazione e partenza sono a sinistra in over con partenza inferiore a destinazione OK
+                ((beamSet > leftOver) && (overWarn == 0) && (beamDir > inverse) && (beamDir < beamSet)) || // destinazione in zona over partenza in zona normale piu vicina alla destinazione (non parte per fare l'overlap)
+                ((beamSet < rightOver) && (overWarn == 0) && (beamDir > inverse)) ||                       // destinazione in zona over partenza in zona normale piu vicina alla destinazione (parte per fare l'overlap)
+                ((beamSet < leftOver) && (overWarn == -1) && (beamDir > beamSet))                          // destinazione in zona normale patenza in zona over sx (parte per il rientro dall'overlap
+              ) {
             cw = HIGH;
             strcat(&msg[1], "CW ");
-        } else if (beamDir > beamSet) {
+        } else if (
+                ((beamDir > beamSet) && (inverse == 180) && (overWarn == 0)) ||                             //normale
+                ((beamSet < rightOver) && (overWarn == 1) && (beamDir > beamSet)) ||                        // destinazione e partenza sono a destra in over con partenza superiore a destinazione OK 
+                ((beamSet > leftOver) && (overWarn == -1) && (beamDir > beamSet)) ||                        // destinazione e partenza sono a sinistra in over con partenza superiore a destinazione OK
+                ((beamSet > leftOver) && (overWarn == 0) && (beamDir < inverse)) ||                         // destinazione in zona over partenza in zona normale piu vicina alla destinazione (parte per fare l'overlap)
+                ((beamSet < rightOver) && (overWarn == 0) && (beamDir < inverse) && (beamDir > beamSet)) || // destinazione in zona over partenza in zona normale piu vicina alla destinazione (non parte per fare l'overlap)
+                ((beamSet > rightOver) && (overWarn == 1) && (beamDir < beamSet))                           // destinazione in zona normale patenza in zona over dx (parte per il rientro dall'overlap
+              ) {
             ccw = HIGH;
             strcat(&msg[0], "CCW ");
         }
