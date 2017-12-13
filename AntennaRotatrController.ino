@@ -125,7 +125,7 @@ int beamDir = 1;                                                        // Actua
 int beamSet = 1;                                                        // Beam directione to set
 int spdValue = 1;                                                       // Rotation speed
 
-PINflag StartStopFlag = Stop;
+boolean bMoveAntenna = false;                                           // Start Stop flag
 PINflag SpeedModeFlag = Auto;
 boolean bChoosingNewAngle = true;                                       // User Action flag
 
@@ -173,7 +173,7 @@ void setup() {
 void loop() {
     DebugPrintMessage("---------------------------- Cycling loop() START ----------------------------\n");
     DebugPrintInt("RAW value of rotator potentiometer == %d\n", AnalogRead12Bits(rotatorSensor));
-    DebugPrintInt("Value of the start/stop flag == %d\n", StartStopFlag);
+    DebugPrintInt("Value of the start/stop flag == %d\n", bMoveAntenna);
     DebugPrintInt("Value of the Auto/Manual flag == %d\n", SpeedModeFlag);
     DebugPrintInt("Value of the User Action flag == %d\n", bChoosingNewAngle);
     DebugPrintInt("Value of the BEAM direction == %d\n", beamDir);
@@ -239,9 +239,9 @@ void UserSetConfirmToggle() {
 
 // Toggles the Start/Stop state [CB]
 void StartStopToggle() {
-    DebugPrintInt("Status of the start/stop flag == %d\nStartStopSwitch has been pushed\n", StartStopFlag);
-    StartStopFlag = (StartStopFlag == Stop ? Start : Stop);
-    DebugPrintInt("New status of the start/stop flag == %d\n", StartStopFlag);
+    DebugPrintInt("Status of the start/stop flag == %d\nStartStopSwitch has been pushed\n", bMoveAntenna);
+    bMoveAntenna = !bMoveAntenna;
+    DebugPrintInt("New status of the start/stop flag == %d\n", bMoveAntenna);
 }
 
 void StartStopAction() {
@@ -249,16 +249,16 @@ void StartStopAction() {
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
     char msg[5] = "    ";
-    if ((!StartStopFlag) || (beamDir == beamSet)) {
-        StartStopFlag = Stop;
-    }
-    else if ((beamDir < beamSet) && (StartStopFlag)) {
-        cw = HIGH;
-        strcat(&msg[1], "CW ");
-    }
-    else if ((beamDir > beamSet) && (StartStopFlag)) {
-        ccw = HIGH;
-        strcat(&msg[0], "CCW ");
+    if (bMoveAntenna) {
+        if (beamDir == beamSet) {
+            bMoveAntenna = Stop;
+        } else if (beamDir < beamSet) {
+            cw = HIGH;
+            strcat(&msg[1], "CW ");
+        } else if (beamDir > beamSet) {
+            ccw = HIGH;
+            strcat(&msg[0], "CCW ");
+        }
     }
     digitalWrite(CWMotor, cw);
     digitalWrite(CCWMotor, ccw);
@@ -286,7 +286,7 @@ void AutoManualAction() {
         utftDisplay.setFont(BigFont);
         utftDisplay.print("Manual ", RIGHT, 12);
     } else {
-        if (StartStopFlag == Start) {
+        if (bMoveAntenna) {
             int rotationValue = abs(beamSet - beamDir);
             if (10 < rotationValue)
                 spdValue = 255;
