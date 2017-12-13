@@ -517,7 +517,7 @@ void OverlapWarning () {
         utftDisplay.setColor (red);
         utftDisplay.setFont(BigFont);
         utftDisplay.print("OVER", minX+25, maxY+2);
-        if (overWarn < 0) {
+        if (overWarn > 0) {
             x = maxX;
             width = -width;
         }
