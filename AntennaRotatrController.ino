@@ -65,15 +65,6 @@ typedef enum {
 } BHTYPE;
 
 typedef enum {
-    Start     = 1,
-    Stop      = 0,
-    Auto      = 1,
-    Manual    = 0,
-    Setting   = 1,
-    Confirmed = 0
-} PINflag;
-
-typedef enum {
     Released = 0,
     Pressed = 1,
     Held = 2,                                                           // Currently unused
@@ -251,7 +242,7 @@ void StartStopAction() {
     char msg[5] = "    ";
     if (bMoveAntenna) {
         if (beamDir == beamSet) {
-            bMoveAntenna = Stop;
+            bMoveAntenna = false;
         } else if (beamDir < beamSet) {
             cw = HIGH;
             strcat(&msg[1], "CW ");
@@ -454,7 +445,7 @@ void DrawBeamHead(const int& angle, const BHTYPE& type, const boolean& bErase) {
                 utftDisplay.drawLine(X, Y, x2[angle], y2[angle]);
                 break;
             default:
-                DebugPrintInt("Invalid beam type drawing specified: %d\n", headStyle);
+                DebugPrintInt("Invalid beam type drawing specified: %d\n", type);
                 break;
         }
     }
