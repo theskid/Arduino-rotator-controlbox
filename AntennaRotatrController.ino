@@ -104,7 +104,7 @@ void UserSetConfirmToggle();                                            // Set/C
 void BeamSetting();                                                     // Azimut setting potentiometer read
 inline void BeamDirControl();                                           // Azimut rotor potentiometer read
 int AnalogRead12Bits(uint8_t pin);                                      // 12-bits oversampled analogread 
-void SpeedMeter (int spd);                                              // Speedmeater drawing helper function
+void SpeedMeter(const int& speed);                                     // Speedmeter drawing helper function
 void OverlapWarning (int condition);
 
 /*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
@@ -307,7 +307,7 @@ void AutoManualAction() {
     utftDisplay.setColor(yellow);
     utftDisplay.setFont(BigFont);
     utftDisplay.printNumI(spdValue,RIGHT, 38,3,' ');
-    SpeedMeter (spdValue);
+    SpeedMeter(spdValue);
     DebugPrintMessage("Exiting AutoManualAction()\n");
 }
 
@@ -483,32 +483,34 @@ int AnalogRead12Bits(uint8_t pin) {
     return Result;
 }
 
-// Draw the speed with a s-meeter
-void SpeedMeter (int spd) {
-  int maxY = speedMeter.tl.y+2; 
-  int minY = speedMeter.br.y-2;
-  int uprY = map (spdValue, 0, 255, minY, maxY);
-  int uprX = speedMeter.tl.x+2;
-  int minX = speedMeter.br.x-2;
-  utftDisplay.setColor (black);
-  utftDisplay.fillRect(uprX, maxY, minX, uprY);
-  utftDisplay.setColor (red);
-  utftDisplay.fillRect(uprX, uprY, minX, minY);  
+// Draw the speed with a s-meter
+void SpeedMeter(const int& speed) {
+    #define PADDING 2
+    int minX = speedMeter.br.x - PADDING;
+    int maxX = speedMeter.tl.x + PADDING;
+    int minY = speedMeter.br.y - PADDING;
+    int maxY = speedMeter.tl.y + PADDING;
+    #undef PADDING
+    int mappedSpeed = map(speed, 0, 255, minY, maxY);
+    utftDisplay.setColor(black);
+    utftDisplay.fillRect(maxX, maxY, minX, mappedSpeed);
+    utftDisplay.setColor(red);
+    utftDisplay.fillRect(maxX, mappedSpeed, minX, minY);
 }
 
-void OverlapWarning (int condition) {
-  if (condition != 0) {
-    utftDisplay.setColor (red);
-    utftDisplay.setFont(BigFont);
-    utftDisplay.print("OVER", 345, 292);
-    if (condition < 0) {
-      geo.fillTriangle(340, 310, 340, 290, 320, 300);
+void OverlapWarning(int condition) {
+    if (condition != 0) {
+        utftDisplay.setColor (red);
+        utftDisplay.setFont(BigFont);
+        utftDisplay.print("OVER", 345, 292);
+        if (condition < 0) {
+            geo.fillTriangle(340, 310, 340, 290, 320, 300);
+        } else {
+            geo.fillTriangle(414, 310, 414, 290, 434, 300);
+        }
     } else {
-      geo.fillTriangle(414, 310, 414, 290, 434, 300);
+        utftDisplay.setColor (black);
+        utftDisplay.fillRect(320,290,434,310);
     }
-  } else {
-    utftDisplay.setColor (black);
-    utftDisplay.fillRect(320,290,434,310);
-  }
 }
 
