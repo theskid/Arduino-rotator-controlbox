@@ -12,6 +12,7 @@
 typedef enum {                                                          // @TODO Going to remove the enum in favor of defines
     TFT_HVGA_480x320 = 1,                                               // 3.2 480x320 TFTLCD Shield
 } DISPLAY_TYPE;
+
 #include "Settings.h"                                                   // User settings take precedence (flags and debug mode)
 #include "SerialPrint.h"                                                // Serial (and debug) print(f) helpers
 
@@ -103,7 +104,7 @@ void BeamSetting();                                                     // Azimu
 inline void BeamDirControl();                                           // Azimut rotor potentiometer read
 int AnalogRead12Bits(uint8_t pin);                                      // 12-bits oversampled analogread 
 void SpeedMeter(const int& speed);                                      // Speedmeter drawing helper function
-void OverlapWarning (int condition);
+inline void OverlapWarning ();                                          // Overlap signial drawing helper function
 
 /*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
 
@@ -117,8 +118,9 @@ const BUTTON_MAP ButtonsMap[] = {
 
 const float PIover180 = 3.1415926535897932384626433832795 / 180;
 
-int X, Y, dm;
+int X, Y, dm, overWarn = 0;
 AREA speedMeter;
+AREA overWarnSig;
 
 UTFT utftDisplay(ILI9481, 38, 39, 40, 41);
 UTFT_Geometry geo(&utftDisplay);
@@ -179,7 +181,7 @@ void loop() {
 // (Re)draw the azimutal beam direction
 void BeamDirControl() {
     int rawAngle;
-    int over = 0;
+    overWarn = 0;
     Colors color = green;
     if (beamSet != beamDir) {
         // Replace the old Azimut direction beam with the current direction
@@ -188,16 +190,16 @@ void BeamDirControl() {
         beamDir = map(rawAngle, rotatorStart, rotatorStop, minAzimut, maxAzimut);
         if (beamDir < 0) {
           beamDir = 360 - (abs(beamDir % 360));
-          over = -1;
+          overWarn = -1;
         }
         if (beamDir > 359) {
           beamDir = beamDir % 360;
-          over = 1;
+          overWarn = 1;
         }
         DrawBeamHead(beamDir, BeamDIR);
         color = yellow;
     }
-    OverlapWarning (over);
+    OverlapWarning ();
     UserPrintAngle(0, 113, beamDir, color);
 }
 
@@ -313,6 +315,7 @@ void InitializeDisplayHVGA480x320() {
     Y = 160;
     dm = 120;
     speedMeter = { { 445, 58 }, { 470, 310 } };
+    overWarnSig = { { 320, 290 }, { 434, 310 } };
     utftDisplay.InitLCD(LANDSCAPE);
     utftDisplay.clrScr();
     utftDisplay.setFont(BigFont);
@@ -477,18 +480,23 @@ void SpeedMeter(const int& speed) {
     utftDisplay.fillRect(maxX, mappedSpeed, minX, minY);
 }
 
-void OverlapWarning(int condition) {
-    if (condition != 0) {
+// Overlap signial drawing helper function
+void OverlapWarning () {        
+    int loX = overWarnSig.br.x;
+    int hiX = overWarnSig.tl.x;
+    int loY = overWarnSig.br.y;
+    int hiY = overWarnSig.tl.y;
+    if (overWarn != 0) {
         utftDisplay.setColor (red);
         utftDisplay.setFont(BigFont);
-        utftDisplay.print("OVER", 345, 292);
-        if (condition < 0) {
-            geo.fillTriangle(340, 310, 340, 290, 320, 300);
+        utftDisplay.print("OVER", hiX+25, hiY+2);
+        if (overWarn < 0) {
+            geo.fillTriangle(hiX+20, hiY+20, hiX+20, hiY, hiX, hiY+10);
         } else {
-            geo.fillTriangle(414, 310, 414, 290, 434, 300);
+            geo.fillTriangle(loX-20, loY, loX-20, hiY, loX, loY-10);
         }
     } else {
         utftDisplay.setColor (black);
-        utftDisplay.fillRect(320,290,434,310);
+        utftDisplay.fillRect(hiX,hiY,loX,loY);
     }
 }
