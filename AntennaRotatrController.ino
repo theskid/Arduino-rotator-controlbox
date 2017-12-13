@@ -104,7 +104,7 @@ void UserSetConfirmToggle();                                            // Set/C
 void BeamSetting();                                                     // Azimut setting potentiometer read
 inline void BeamDirControl();                                           // Azimut rotor potentiometer read
 int AnalogRead12Bits(uint8_t pin);                                      // 12-bits oversampled analogread 
-void SpeedMeter(const int& speed);                                     // Speedmeter drawing helper function
+void SpeedMeter(const int& speed);                                      // Speedmeter drawing helper function
 void OverlapWarning (int condition);
 
 /*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
@@ -135,18 +135,37 @@ boolean bChoosingNewAngle = true;                                       // User 
 
 /*** DEBUG MESSAGE FUNCTION HELPERS **********************/
 
+#define SPFBUFSIZE 1024
+// Serial.print wrapper enabling printf
+void SerialPrintf(const char* format, ...) {
+    char buffer[SPFBUFSIZE];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buffer, SPFBUFSIZE, format, args);
+    va_end(args);
+    Serial.print(buffer);
+}
+// Support for flash-stored strings – F(string_literal)
+void SerialPrintf(const __FlashStringHelper *format, ... ){
+    char buffer[SPFBUFSIZE];
+    va_list args;
+    va_start (args, format);
+    #ifdef __AVR__
+    vsnprintf_P(buffer, sizeof(buffer), (const char*)format, args);           // Progmem for AVR
+    #else
+    vsnprintf(buffer, sizeof(buffer), (const char*)format, args);             // For the rest of the world
+    #endif
+    va_end(args);
+    Serial.print(buffer);
+}
+#undef SPFBUFSIZE
+
 #ifdef DEBUG
-    void DebugPrintInt(const char* expr, const int& pValue) {
-        char buffer[512] = { 0 };
-        sprintf(buffer, expr, pValue);
-        Serial.print(buffer);
-    }
-    inline void DebugPrintMessage(const char* expr) {
-        Serial.print(expr);
-    }
+    #define DebugPrintf SerialPrintf
+    #define DebugPrint Serial.print
 #else
-    #define DebugPrintInt(...) (void(0))
-    #define DebugPrintMessage(...) (void(0))
+    #define DebugPrintf(...) (void(0))
+    #define DebugPrint(...) (void(0))
 #endif
 
 // Arduino board bootstrap setup
@@ -175,20 +194,20 @@ void setup() {
 
 // Main loop
 void loop() {
-    DebugPrintMessage("---------------------------- Cycling loop() START ----------------------------\n");
-    DebugPrintInt("RAW value of rotator potentiometer == %d\n", AnalogRead12Bits(rotatorSensor));
-    DebugPrintInt("Value of the start/stop flag == %d\n", bMoveAntenna);
-    DebugPrintInt("Value of the Auto/Manual flag == %d\n", bSpeedModeAuto);
-    DebugPrintInt("Value of the User Action flag == %d\n", bChoosingNewAngle);
-    DebugPrintInt("Value of the BEAM direction == %d\n", beamDir);
-    DebugPrintInt("Value of the BEAM setting == %d\n", beamSet);
-    DebugPrintInt("Value of the throttle setting == %d\n", spdValue);
+    DebugPrint("---------------------------- Cycling loop() START ----------------------------\n");
+    DebugPrintf("RAW value of rotator potentiometer == %d\n", AnalogRead12Bits(rotatorSensor));
+    DebugPrintf("Value of the start/stop flag == %d\n", bMoveAntenna);
+    DebugPrintf("Value of the Auto/Manual flag == %d\n", bSpeedModeAuto);
+    DebugPrintf("Value of the User Action flag == %d\n", bChoosingNewAngle);
+    DebugPrintf("Value of the BEAM direction == %d\n", beamDir);
+    DebugPrintf("Value of the BEAM setting == %d\n", beamSet);
+    DebugPrintf("Value of the throttle setting == %d\n", spdValue);
     CheckButtons();
     StartStopAction();
     AutoManualAction();
     BeamSetting();
     BeamDirControl();
-    DebugPrintMessage("----------------------------- Cycling loop() END -----------------------------\n");
+    DebugPrint("----------------------------- Cycling loop() END -----------------------------\n");
     #ifdef DEBUG
         delay(1000);
     #endif
@@ -236,20 +255,24 @@ void BeamSetting() {
 
 // Toggles the Set/Confirm state [CB]
 void UserSetConfirmToggle() {
-    DebugPrintInt("Status of User Action flag == %d\nUserActionSwitch has been pushed\n", bChoosingNewAngle);
     bChoosingNewAngle = !bChoosingNewAngle;
-    DebugPrintInt("New status of User Action flag == %d\n", bChoosingNewAngle);
+    DebugPrintf("UserActionSwitch has been pushed\nNew status of User Action flag == %s\n", bChoosingNewAngle ? "Setting" : "Confirmed");
 }
 
 // Toggles the Start/Stop state [CB]
 void StartStopToggle() {
-    DebugPrintInt("Status of the start/stop flag == %d\nStartStopSwitch has been pushed\n", bMoveAntenna);
     bMoveAntenna = !bMoveAntenna;
-    DebugPrintInt("New status of the start/stop flag == %d\n", bMoveAntenna);
+    DebugPrintf("StartStopSwitch has been pushed\nNew status of the start/stop flag == %s\n", bMoveAntenna ? "Start" : "Stop");
+}
+
+// Toggles the Auto/Manual state [CB]
+void AutoManualToggle() {
+    bSpeedModeAuto = !bSpeedModeAuto;
+    DebugPrintf("SpeedControlSwitch has been pushed\nNew status of the Auto/Manual flag == %s\n", bSpeedModeAuto ? "Automatic" : "Manual");
 }
 
 void StartStopAction() {
-    DebugPrintMessage("Entering StartStopAction()\n");
+    DebugPrint("Entering StartStopAction()\n");
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
     char msg[5] = "    ";
@@ -269,18 +292,11 @@ void StartStopAction() {
     utftDisplay.setColor(yellow);
     utftDisplay.setFont(BigFont);
     utftDisplay.print(msg, RIGHT, 25);
-    DebugPrintMessage("Exiting StartStopAction()\n");
-}
-
-// Toggles the Auto/Manual state [CB]
-void AutoManualToggle() {
-    DebugPrintInt("Status of the Auto/Manual flag == %d\nSpeedControlSwitch has been pushed\n", bSpeedModeAuto);
-    bSpeedModeAuto = !bSpeedModeAuto;
-    DebugPrintInt("New status of the Auto/Manual flag == %d\n", bSpeedModeAuto);
+    DebugPrint("Exiting StartStopAction()\n");
 }
 
 void AutoManualAction() {
-    DebugPrintMessage("Entering AutoManualAction()\n");
+    DebugPrint("Entering AutoManualAction()\n");
     int rawSpdValue;
     if (!bSpeedModeAuto) {
         rawSpdValue = analogRead(spdSetPotentiometer);
@@ -308,7 +324,7 @@ void AutoManualAction() {
     utftDisplay.setFont(BigFont);
     utftDisplay.printNumI(spdValue,RIGHT, 38,3,' ');
     SpeedMeter(spdValue);
-    DebugPrintMessage("Exiting AutoManualAction()\n");
+    DebugPrint("Exiting AutoManualAction()\n");
 }
 
 // Checks buttons status and fires corresponding events
@@ -455,7 +471,7 @@ void DrawBeamHead(const int& angle, const BHTYPE& type, const boolean& bErase) {
                 utftDisplay.drawLine(X, Y, x2[angle], y2[angle]);
                 break;
             default:
-                DebugPrintInt("Invalid beam type drawing specified: %d\n", type);
+                DebugPrintf("Invalid beam type drawing specified: %d\n", type);
                 break;
         }
     }
