@@ -16,7 +16,7 @@
 }*/
 
 // Support for flash-stored strings – F(string_literal)
-void SerialPrintf(const __FlashStringHelper *format, ... ){
+void SerialPrintf(const __FlashStringHelper *format, ... ) {
     char buffer[SPFBUFSIZE];
     va_list args;
     va_start(args, format);

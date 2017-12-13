@@ -468,8 +468,8 @@ int AnalogRead12Bits(uint8_t pin) {
 // Draw the speed with a s-meter
 void SpeedMeter(const int& speed) {
     #define PADDING 2
-    int minX = speedMeter.br.x - PADDING;
-    int maxX = speedMeter.tl.x + PADDING;
+    int minX = speedMeter.tl.x + PADDING;
+    int maxX = speedMeter.br.x - PADDING;
     int minY = speedMeter.br.y - PADDING;
     int maxY = speedMeter.tl.y + PADDING;
     #undef PADDING
@@ -482,21 +482,25 @@ void SpeedMeter(const int& speed) {
 
 // Overlap signial drawing helper function
 void OverlapWarning () {        
-    int loX = overWarnSig.br.x;
-    int hiX = overWarnSig.tl.x;
-    int loY = overWarnSig.br.y;
-    int hiY = overWarnSig.tl.y;
+    int minX = overWarnSig.tl.x;
+    int maxX = overWarnSig.br.x;
+    int minY = overWarnSig.br.y;
+    int maxY = overWarnSig.tl.y;
+    int x = minX;
+    int width = (minY - maxY);
+    int mid = width >> 1;
     if (overWarn != 0) {
         utftDisplay.setColor (red);
         utftDisplay.setFont(BigFont);
-        utftDisplay.print("OVER", hiX+25, hiY+2);
-        if (overWarn < 0) {
-            geo.fillTriangle(hiX+20, hiY+20, hiX+20, hiY, hiX, hiY+10);
-        } else {
-            geo.fillTriangle(loX-20, loY, loX-20, hiY, loX, loY-10);
+        utftDisplay.print("OVER", maxX+25, maxY+2);
+        if (overWarn < 0)
+        {
+            x = maxX
+            width = -width;
         }
+        geo.fillTriangle(x+width, minY, x+width, maxY, x, mid);
     } else {
         utftDisplay.setColor (black);
-        utftDisplay.fillRect(hiX,hiY,loX,loY);
+        utftDisplay.fillRect(maxX,maxY,minX,minY);
     }
 }
