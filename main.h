@@ -3,14 +3,10 @@
 */
 #pragma once
 
-/*** STRUCTS ***********************************/
-
 typedef struct {
     int DigitalPin;
     void (*EventFunction)();
 } BUTTON_MAP;                                                           // Button callbacks map
-
-/*** ENUMS *************************************/
 
 typedef enum {
     BeamDIR = 1,
@@ -38,13 +34,8 @@ typedef enum {
 #define ENUM_COLORS
 #endif
 
-/*** FUNCTION DECLARATIONS *********************/
-
 inline void ConfigureIOPins();                                          // Pins initialization
 inline void DrawInitialScreen();                                        // Initial screen overlay
-//void UserPrint(int, int, const __FlashStringHelper *, COLORS);        // String printer helper function
-void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type);         // Beam drawing helper function
-inline void UserPrintAngle(int x, int y, int userAngle, COLORS color);  // Angle drawing through SevenSegmentFull font
 inline void CheckButtons();                                             // Button tracking
 void StartStopToggle();                                                 // Start/Stop button event toggle
 inline void StartStopAction();                                          // Start/Stop in-loop actions
@@ -54,4 +45,3 @@ void UserSetConfirmToggle();                                            // Set/C
 inline void BeamSetting(const bool& forceUpdate = false);               // Azimut setting potentiometer read
 inline void BeamDirControl(const bool& forceUpdate = false);            // Azimut rotor potentiometer read
 inline int AnalogRead12Bits(uint8_t pin);                               // 12-bits oversampled analogread 
-void SpeedMeter(const int& speed);                                      // Speedmeter drawing helper function

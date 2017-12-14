@@ -38,6 +38,8 @@ const int rotatorStop = 2245;
 
 #define PI_OVER_180 0.01745329251994329576923690768489                  // Pi/180. Trigonometry is fun!
 
+#define OVERLAP_SIZE 20                                                 // Overlap warning arrows
+
 int beamDir = 0;                                                        // Actual beam direction
 int beamSet = 0;                                                        // Beam directione to set
 int spdValue = 0;                                                       // Rotation speed
@@ -113,6 +115,114 @@ void loop() {
     #endif
 }
 
+// Print the angle
+void UserPrintAngle(const int& x, const int& y, int angle, const COLORS& color, const BHTYPE& type) {
+    static COLORS lastla[2] = { (COLORS)0 };                            // Prev. colors
+    static COLORS lastra[2] = { (COLORS)0 };
+    COLORS la = COLORS::Black;                                          // Left arrow
+    COLORS ra = COLORS::Black;                                          // Right arrow
+
+    // Overlaps
+    if (0 > angle)
+    {
+        angle += 360;
+        la = COLORS::Red;
+    }
+    if (359 < angle)
+    {
+        angle -= 360;
+        ra = COLORS::Red;
+    }
+
+    // SSF font size: 32x50 pixels
+    #define MIDARROW ((50 - OVERLAP_SIZE) >> 1)
+    #define LOWY (MIDARROW + (OVERLAP_SIZE >> 1))
+    #define HIGHY (MIDARROW - (OVERLAP_SIZE >> 1))
+    #define RIGHTMOST (10 + OVERLAP_SIZE + (32 * 3))
+    if (lastla[type] != la)
+    {
+        lastla[type] = la;
+        display->setColor(la);
+        geo->fillTriangle(x, y + MIDARROW, x + OVERLAP_SIZE, y + HIGHY, x + OVERLAP_SIZE, y + LOWY);
+    }
+    if (lastra[type] != ra)
+    {
+        lastra[type] = ra;
+        display->setColor(ra);
+        geo->fillTriangle(x + RIGHTMOST + OVERLAP_SIZE, y + MIDARROW, x + RIGHTMOST, y + LOWY, x + RIGHTMOST, y + HIGHY);
+    }
+    #undef RIGHTMOST
+    #undef HIGHY
+    #undef LOWY
+    #undef MIDARROW
+
+    char buff[4];                                                       // 3 digits + '\0'
+    sprintf(buff, "%03d", angle);
+    UserPrint(x + 5 + OVERLAP_SIZE, y, buff, color, SevenSegmentFull);
+}
+
+// Draw the beam
+void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
+    static boolean bInitialized = false;
+    static int x2[360], y2[360], x3[360], y3[360], x4[360], y4[360];
+    int h = (BHTYPE::BeamDIR == type ? 12 : 10);
+    int w = 10;
+
+    // For faster drawing and reduced computation, we pre-build a lookup tables for the heavy lifting computation
+    if (!bInitialized) {
+        bInitialized = true;
+        int x2a, y2a, dx, dy;
+        for (int a = 0; a < 360; a++) {
+            x2[a] = (compass.radius * .9 * cos((a - 90) * PI_OVER_180)) + compass.X;
+            y2[a] = (compass.radius * .9 * sin((a - 90) * PI_OVER_180)) + compass.Y;
+            dx = compass.X + (w / 6) * (x2[a] - compass.X) / h;
+            dy = compass.Y + (w / 6) * (y2[a] - compass.Y) / h;
+            x2a = compass.X - dx;
+            y2a = dy - compass.Y;
+            x3[a] = y2a + dx;
+            y3[a] = x2a + dy;
+            x4[a] = dx - y2a;
+            y4[a] = dy - x2a;
+        }
+    }
+
+    // Ignore overlaps
+    if (0 > oldAngle)   oldAngle += 360;
+    if (359 < oldAngle) oldAngle -= 360;
+    if (0 > angle)         angle += 360;
+    if (359 < angle)       angle -= 360;
+
+    #define colorDir COLORS::Red
+    #define colorSet COLORS::Green
+
+    // First pass erases the old one, second pass draws at the new angle
+    for (int i = 0; i < 2; i++) {
+        int a = (0 == i ? oldAngle : angle);
+        int color = (0 == i ? COLORS::Black : (BHTYPE::BeamDIR == type ? colorDir : colorSet));
+        switch (type) {
+            case BHTYPE::BeamDIR: {
+                display->setColor(color);
+                geo->fillTriangle(x2[a], y2[a], x3[a], y3[a], x4[a], y4[a]);
+                geo->fillTriangle(x3[a], y3[a], compass.X, compass.Y, x4[a], y4[a]);
+                break;
+            }
+            case BHTYPE::BeamSET: {
+                display->setColor(color);
+                display->drawLine(x3[a], y3[a], compass.X, compass.Y);
+                display->drawLine(compass.X, compass.Y, x4[a], y4[a]);
+                display->drawLine(x4[a], y4[a], x2[a], y2[a]);
+                display->drawLine(x2[a], y2[a], x3[a], y3[a]);
+                display->drawLine(compass.X, compass.Y, x2[a], y2[a]);
+                break;
+            }
+        }
+    }
+
+    // Always redraw the pivot
+    display->setColor(colorDir);
+    display->fillCircle(compass.X, compass.Y, 9);
+}
+
 // Update the azimuthal beam direction
 inline void BeamDirControl(const bool& forceUpdate) {
     static int lastBDReading = 0;
@@ -128,7 +238,7 @@ inline void BeamDirControl(const bool& forceUpdate) {
             lastBDReading = beamDir;
         }
     }
-    UserPrintAngle(0, 113, beamDir, color);
+    UserPrintAngle(0, 113, beamDir, color, BeamDIR);
 }
 
 // Update the azimuthal beam setting direction
@@ -140,8 +250,7 @@ inline void BeamSetting(const bool& forceUpdate) {
             color = COLORS::Yellow;
         // Update the angle and define the shortest route to it
         int r = ReadBeamSet();
-        if (r != lastBSReading)
-        {
+        if (r != lastBSReading) {
             beamSet = r;
             if (OVERLAP_TOLERANCE >= (360 - r))
                 beamSet = abs(beamDir - (r - 360)) < abs(beamDir - r) ? r - 360 : r;
@@ -151,7 +260,7 @@ inline void BeamSetting(const bool& forceUpdate) {
             lastBSReading = beamSet;
         }
     }
-    UserPrintAngle(0, 213, beamSet, color);
+    UserPrintAngle(0, 213, beamSet, color, BeamSET);
 }
 
 // Toggles the Set/Confirm state [CB]
@@ -202,6 +311,21 @@ void StartStopAction() {
         UserPrint(RIGHT, 25, msg, COLORS::Yellow);
     }
     DebugPrint("Exiting StartStopAction()\n");
+}
+
+// Draw the speed with a s-meter
+inline void SpeedMeter(const int& speed) {
+    #define PADDING 2
+    int minX = speedMeter.tl.x + PADDING;
+    int maxX = speedMeter.br.x - PADDING;
+    int minY = speedMeter.br.y - PADDING;
+    int maxY = speedMeter.tl.y + PADDING;
+    #undef PADDING
+    int mappedSpeed = map(speed, 0, 255, minY, maxY);
+    display->setColor(COLORS::Black);
+    display->fillRect(maxX, maxY, minX, mappedSpeed);
+    display->setColor(COLORS::Red);
+    display->fillRect(maxX, mappedSpeed, minX, minY);
 }
 
 void AutoManualAction() {
@@ -280,86 +404,6 @@ void DrawInitialScreen() {
     }
 }
 
-// Draw the beam
-void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
-    static boolean bInitialized = false;
-    static int x2[360], y2[360], x3[360], y3[360], x4[360], y4[360];
-    int h = (BHTYPE::BeamDIR == type ? 12 : 10);
-    int w = 10;
-
-    // For faster drawing and reduced computation, we pre-build a lookup tables for the heavy lifting computation
-    if (!bInitialized) {
-        bInitialized = true;
-        int x2a, y2a, dx, dy;
-        for (int a = 0; a < 360; a++) {
-            x2[a] = (compass.radius * .9 * cos((a - 90) * PI_OVER_180)) + compass.X;
-            y2[a] = (compass.radius * .9 * sin((a - 90) * PI_OVER_180)) + compass.Y;
-            dx = compass.X + (w / 6) * (x2[a] - compass.X) / h;
-            dy = compass.Y + (w / 6) * (y2[a] - compass.Y) / h;
-            x2a = compass.X - dx;
-            y2a = dy - compass.Y;
-            x3[a] = y2a + dx;
-            y3[a] = x2a + dy;
-            x4[a] = dx - y2a;
-            y4[a] = dy - x2a;
-        }
-    }
-
-    // Ignore overlaps
-    if (0 > oldAngle)   oldAngle += 360;
-    if (359 < oldAngle) oldAngle -= 360;
-    if (0 > angle)         angle += 360;
-    if (359 < angle)       angle -= 360;
-
-    #define colorDir COLORS::Red
-    #define colorSet COLORS::Green
-
-    // First pass erases the old one, second pass draws at the new angle
-    for (int i = 0; i < 2; i++) {
-        int a = (0 == i ? oldAngle : angle);
-        int color = (0 == i ? COLORS::Black : (BHTYPE::BeamDIR == type ? colorDir : colorSet));
-        switch (type) {
-            case BHTYPE::BeamDIR: {
-                display->setColor(color);
-                geo->fillTriangle(x2[a], y2[a], x3[a], y3[a], x4[a], y4[a]);
-                geo->fillTriangle(x3[a], y3[a], compass.X, compass.Y, x4[a], y4[a]);
-                break;
-            }
-            case BHTYPE::BeamSET: {
-                display->setColor(color);
-                display->drawLine(x3[a], y3[a], compass.X, compass.Y);
-                display->drawLine(compass.X, compass.Y, x4[a], y4[a]);
-                display->drawLine(x4[a], y4[a], x2[a], y2[a]);
-                display->drawLine(x2[a], y2[a], x3[a], y3[a]);
-                display->drawLine(compass.X, compass.Y, x2[a], y2[a]);
-                break;
-            }
-        }
-    }
-
-    // Always redraw the pivot
-    display->setColor(colorDir);
-    display->fillCircle(compass.X, compass.Y, 9);
-}
-
-// Print the angle
-inline void UserPrintAngle(int x, int y, int angle, COLORS color) {
-    // Overlaps
-    if (0 > angle)
-    {
-        angle += 360;
-        // Draw left overlap
-    }
-    if (359 < angle)
-    {
-        angle -= 360;
-        // Draw right overlap
-    }
-    char buff[4];                                                      // 3 digit + null string terminator (\0)
-    sprintf(buff, "%03d", angle);
-    UserPrint(x, y, buff, color, SevenSegmentFull);
-}
-
 // Multisampling for 12bit readings
 inline int AnalogRead12Bits(uint8_t pin) {
     int Result = 0;
@@ -370,42 +414,3 @@ inline int AnalogRead12Bits(uint8_t pin) {
     Result >>= 2;                                                       // Divide by 4 for 12 bit value
     return Result;
 }
-
-// Draw the speed with a s-meter
-void SpeedMeter(const int& speed) {
-    #define PADDING 2
-    int minX = speedMeter.tl.x + PADDING;
-    int maxX = speedMeter.br.x - PADDING;
-    int minY = speedMeter.br.y - PADDING;
-    int maxY = speedMeter.tl.y + PADDING;
-    #undef PADDING
-    int mappedSpeed = map(speed, 0, 255, minY, maxY);
-    display->setColor(COLORS::Black);
-    display->fillRect(maxX, maxY, minX, mappedSpeed);
-    display->setColor(COLORS::Red);
-    display->fillRect(maxX, mappedSpeed, minX, minY);
-}
-
-// Overlap signial drawing helper function
-/*void OverlapWarning () {        
-/*    int minX = overWarnSig.tl.x;
-    int maxX = overWarnSig.br.x;
-    int minY = overWarnSig.br.y;
-    int maxY = overWarnSig.tl.y;
-    int x = minX;
-    int width = (minY - maxY);
-    int mid = maxY + (width >> 1);
-    if (overWarn != 0) {
-        display->setColor (red);
-        display->setFont(BigFont);
-        display->print(F("OVER"), minX+25, maxY+2);
-        if (overWarn > 0) {
-            x = maxX;
-            width = -width;
-        }
-        geo->fillTriangle(x+width, minY, x+width, maxY, x, mid);
-    } else {
-        display->setColor (black);
-        display->fillRect(maxX,maxY,minX,minY);
-    }* /
-}*/
