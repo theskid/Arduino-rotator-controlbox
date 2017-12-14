@@ -6,9 +6,6 @@
 // UTFT Library from Henning Karlsen (http://www.rinkydinkelectronics.com/library.php)
 // UTFT Geometry Library from Henning Karlsen (http://www.rinkydinkelectronics.com/library.php)
 
-#include <UTFT.h>
-#include <UTFT_Geometry.h>
-
 #include "main.h"                                                       // Main header
 #include "Settings.h"                                                   // User settings take precedence (flags and debug mode)
 #include "Displays.h"                                                   // Displays and initializations
@@ -39,6 +36,8 @@ const int rotatorStop = 2245;
 #define MIN_AZIMUTH 0                                                   // N
 #define MAX_AZIMUTH 359                                                 // N, 1° W
 
+#define PI_OVER_180 0.01745329251994329576923690768489                  // Pi/180. Trigonometry is fun!
+
 int beamDir = 0;                                                        // Actual beam direction
 int beamSet = 0;                                                        // Beam directione to set
 int spdValue = 0;                                                       // Rotation speed
@@ -56,6 +55,12 @@ const BUTTON_MAP ButtonsMap[] = {
 };
 #define BUTTON_COUNT sizeof ButtonsMap / sizeof ButtonsMap[0]
 
+/*** EXTERNALLY DEFINED **********************************/
+
+extern AREA speedMeter;                                                 // Speed meter area
+extern COMPASS compass;                                                 // Compass basic coordinates
+extern UTFT* display;                                                   // Main display
+extern UTFT_Geometry* geo;                                              // Geometric helper functions
 
 /*******************************************************************
 **** THERE BE DRAGONS **********************************************
@@ -254,12 +259,6 @@ void ConfigureIOPins() {
     analogReference(DEFAULT);
 }
 
-void UserPrint(int x, int y, String userData, COLORS color) {
-    display->setColor(color);
-    display->setFont(BigFont);
-    display->print(userData, x, y);
-}
-
 // Draw the screen overlay
 void DrawInitialScreen() {
     int dxOuter, dyOuter, dxinner, dyinner;
@@ -267,8 +266,8 @@ void DrawInitialScreen() {
     display->drawCircle(compass.X, compass.Y, compass.radius);
     for (float i = 0; i < 360; i += 22.5) {
         display->setColor(255, 128, 0);
-        dxOuter = compass.radius * cos((i - 90) * PIover180);
-        dyOuter = compass.radius * sin((i - 90) * PIover180);
+        dxOuter = compass.radius * cos((i - 90) * PI_OVER_180);
+        dyOuter = compass.radius * sin((i - 90) * PI_OVER_180);
         dxinner = dxOuter * 0.97;
         dyinner = dyOuter * 0.97;
         display->drawLine(dxOuter + compass.X, dyOuter + compass.Y, dxinner + compass.X, dyinner + compass.Y);
@@ -292,8 +291,8 @@ void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
         bInitialized = true;
         int x2a, y2a, dx, dy;
         for (int a = 0; a < 360; a++) {
-            x2[a] = (compass.radius * .9 * cos((a - 90) * PIover180)) + compass.X;
-            y2[a] = (compass.radius * .9 * sin((a - 90) * PIover180)) + compass.Y;
+            x2[a] = (compass.radius * .9 * cos((a - 90) * PI_OVER_180)) + compass.X;
+            y2[a] = (compass.radius * .9 * sin((a - 90) * PI_OVER_180)) + compass.Y;
             dx = compass.X + (w / 6) * (x2[a] - compass.X) / h;
             dy = compass.Y + (w / 6) * (y2[a] - compass.Y) / h;
             x2a = compass.X - dx;

@@ -1,18 +1,9 @@
 /*
 **  Main header
 */
+#pragma once
 
 /*** STRUCTS ***********************************/
-
-typedef struct {
-    int x;
-    int y;
-} POINT;                                                                // Point coordinates
-
-typedef struct {
-    POINT tl;                                                           // Top left corner
-    POINT br;                                                           // Bottom right corner
-} AREA;                                                                 // Area coordinates
 
 typedef struct {
     int DigitalPin;
@@ -32,6 +23,7 @@ typedef enum {
     Held = 2,                                                           // Currently unused
 } BUTTON_STATE;                                                         // Button states
 
+#ifndef ENUM_COLORS
 typedef enum {
     Black   = 0x0000,
     Blue    = 0x001F,
@@ -43,16 +35,14 @@ typedef enum {
     White   = 0xFFFF,
     Orange  = 0xF400
 } COLORS;                                                               // UTFT Display module color constants
-
-/*** CONSTANTS *********************************/
-
-const float PIover180 = 3.1415926535897932384626433832795 / 180;        // Trigonometry is fun!
+#define ENUM_COLORS
+#endif
 
 /*** FUNCTION DECLARATIONS *********************/
 
 inline void ConfigureIOPins();                                          // Pins initialization
 inline void DrawInitialScreen();                                        // Initial screen overlay
-void UserPrint(int x, int y, String userData, COLORS color);            // String printer helper function
+//void UserPrint(int, int, const __FlashStringHelper *, COLORS);        // String printer helper function
 void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type);         // Beam drawing helper function
 inline void UserPrintAngle(int x, int y, int userAngle, COLORS color);  // Angle drawing through SevenSegmentFull font
 inline void CheckButtons();                                             // Button tracking

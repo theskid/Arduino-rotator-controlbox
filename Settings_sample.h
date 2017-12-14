@@ -3,10 +3,10 @@
 #pragma once
 
 // Your QRZ
-const String QRZ = "QRZ";
+#define QRZ "QRZ"
 
 // Your Name
-const String NAME = "Name";
+#define NAME "Name"
 
 //  The amount of degrees overlap allowance. Must be a number between 0 and 90
 //
