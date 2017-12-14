@@ -283,79 +283,61 @@ void DrawInitialScreen() {
 // Draw the beam
 void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
     static boolean bInitialized = false;
-    static float dist[360];
-    static int dx[360], dy[360], x2[360], y2[360];
-    if (0 > oldAngle)
-        oldAngle += 360;
-    if (359 < oldAngle)
-        oldAngle -= 360;
-    if (0 > angle)
-        angle += 360;
-    if (359 < angle)
-        angle -= 360;
-    int x2a, y2a, x3, y3, x4, y4;
+    static int x2[360], y2[360], x3[360], y3[360], x4[360], y4[360];
     int h = (BHTYPE::BeamDIR == type ? 12 : 10);
     int w = 10;
-    COLORS colorDir = COLORS::Red;
-    COLORS colorSet = COLORS::Green;
+
     // For faster drawing and reduced computation, we pre-build a lookup tables for the heavy lifting computation
     if (!bInitialized) {
         bInitialized = true;
+        int x2a, y2a, dx, dy;
         for (int a = 0; a < 360; a++) {
             x2[a] = (dm * .9 * cos((a - 90) * PIover180)) + X;
             y2[a] = (dm * .9 * sin((a - 90) * PIover180)) + Y;
-            dist[a] = sqrt((X - x2[a]) * (X - x2[a]) + (Y - y2[a]) * (Y - y2[a]));
-            dx[a] = X + (w / 6) * (x2[a] - X) / h;
-            dy[a] = Y + (w / 6) * (y2[a] - Y) / h;
+            dx = X + (w / 6) * (x2[a] - X) / h;
+            dy = Y + (w / 6) * (y2[a] - Y) / h;
+            x2a = X - dx;
+            y2a = dy - Y;
+            x3[a] = y2a + dx;
+            y3[a] = x2a + dy;
+            x4[a] = dx - y2a;
+            y4[a] = dy - x2a;
         }
     }
-    x2a = X - dx[oldAngle];
-    y2a = dy[oldAngle] - Y;
-    x3 = y2a + dx[oldAngle];
-    y3 = x2a + dy[oldAngle];
-    x4 = dx[oldAngle] - y2a;
-    y4 = dy[oldAngle] - x2a;
-    switch (type) {
-        case BHTYPE::BeamDIR: {
-            display->setColor(COLORS::Black);
-            geo->fillTriangle(x2[oldAngle], y2[oldAngle], x3, y3, x4, y4);
-            geo->fillTriangle(x3, y3, X, Y, x4, y4);
-            x2a = X - dx[angle];
-            y2a = dy[angle] - Y;
-            x3 = y2a + dx[angle];
-            y3 = x2a + dy[angle];
-            x4 = dx[angle] - y2a;
-            y4 = dy[angle] - x2a;
-            display->setColor(colorDir);
-            geo->fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
-            geo->fillTriangle(x3, y3, X, Y, x4, y4);
-            break;
+
+    // Ignore overlaps
+    if (0 > oldAngle)   oldAngle += 360;
+    if (359 < oldAngle) oldAngle -= 360;
+    if (0 > angle)         angle += 360;
+    if (359 < angle)       angle -= 360;
+
+    #define colorDir COLORS::Red
+    #define colorSet COLORS::Green
+
+    // First pass erases the old one, second pass draws at the new angle
+    for (int i = 0; i < 2; i++) {
+        int a = (0 == i ? oldAngle : angle);
+        int color = (0 == i ? COLORS::Black : (BHTYPE::BeamDIR == type ? colorDir : colorSet));
+        switch (type) {
+            case BHTYPE::BeamDIR: {
+                display->setColor(color);
+                geo->fillTriangle(x2[a], y2[a], x3[a], y3[a], x4[a], y4[a]);
+                geo->fillTriangle(x3[a], y3[a], X, Y, x4[a], y4[a]);
+                break;
+            }
+            case BHTYPE::BeamSET: {
+                display->setColor(color);
+                display->drawLine(x3[a], y3[a], X, Y);
+                display->drawLine(X, Y, x4[a], y4[a]);
+                display->drawLine(x4[a], y4[a], x2[a], y2[a]);
+                display->drawLine(x2[a], y2[a], x3[a], y3[a]);
+                display->drawLine(X, Y, x2[a], y2[a]);
+                break;
+            }
         }
-        case BHTYPE::BeamSET: {
-            display->setColor(COLORS::Black);
-            display->drawLine(x3, y3, X, Y);
-            display->drawLine(X, Y, x4, y4);
-            display->drawLine(x4, y4, x2[oldAngle], y2[oldAngle]);
-            display->drawLine(x2[oldAngle], y2[oldAngle], x3, y3);
-            display->drawLine(X, Y, x2[oldAngle], y2[oldAngle]);
-            x2a = X - dx[angle];
-            y2a = dy[angle] - Y;
-            x3 = y2a + dx[angle];
-            y3 = x2a + dy[angle];
-            x4 = dx[angle] - y2a;
-            y4 = dy[angle] - x2a;
-            display->setColor(colorSet);
-            display->drawLine(x3, y3, X, Y);
-            display->drawLine(X, Y, x4, y4);
-            display->drawLine(x4, y4, x2[angle], y2[angle]);
-            display->drawLine(x2[angle], y2[angle], x3, y3);
-            display->drawLine(X, Y, x2[angle], y2[angle]);
-            break;
-        }
-        default:
-            DebugPrintf("Invalid beam type specified: %d\n", type);
-            break;
     }
+
+    // Always redraw the pivot
     display->setColor(colorDir);
     display->fillCircle(X, Y, 9);
 }
