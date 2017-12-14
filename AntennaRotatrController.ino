@@ -251,10 +251,10 @@ void StartStopAction() {
     int max = maxAzimut + overlapTolerance;
     int dest = beamSet;
 
-    if ((-overlapTolerance) <= (beamSet - 360))
+    if (overlapTolerance >= (360 - beamSet))
         dest = abs(beamDir - (beamSet - 360)) < abs(beamDir - beamSet) ? beamSet - 360 : beamSet;
     if (overlapTolerance >= (beamSet + 1))
-        dest = abs(beamDir - (beamSet + 1)) < abs(beamDir - beamSet) ? beamSet + 360 : beamSet;
+        dest = abs(beamDir - (beamSet + 360)) < abs(beamDir - beamSet) ? beamSet + 360 : beamSet;
     DebugPrintf("Tolleranza: %d\nDestinazione: %d\nBeamSet: %d\nBeamDir: %d\n\n", overlapTolerance, dest, beamSet, beamDir);
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
