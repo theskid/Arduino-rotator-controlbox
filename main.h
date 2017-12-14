@@ -54,14 +54,14 @@ inline void ConfigureIOPins();                                          // Pins 
 inline void DrawInitialScreen();                                        // Initial screen overlay
 void UserPrint(int x, int y, String userData, COLORS color);            // String printer helper function
 void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type);         // Beam drawing helper function
-void UserPrintAngle(int x, int y, int userAngle, COLORS color);         // Angle drawing through SevenSegmentFull font
+inline void UserPrintAngle(int x, int y, int userAngle, COLORS color);  // Angle drawing through SevenSegmentFull font
 inline void CheckButtons();                                             // Button tracking
 void StartStopToggle();                                                 // Start/Stop button event toggle
 inline void StartStopAction();                                          // Start/Stop in-loop actions
 void AutoManualToggle();                                                // Auto/Manual button event toggle
 inline void AutoManualAction();                                         // Auto/Manual in-loop actions
 void UserSetConfirmToggle();                                            // Set/Confirm button event toggle
-void BeamSetting();                                                     // Azimut setting potentiometer read
-inline void BeamDirControl();                                           // Azimut rotor potentiometer read
-int AnalogRead12Bits(uint8_t pin);                                      // 12-bits oversampled analogread 
+inline void BeamSetting(const bool& forceUpdate = false);               // Azimut setting potentiometer read
+inline void BeamDirControl(const bool& forceUpdate = false);            // Azimut rotor potentiometer read
+inline int AnalogRead12Bits(uint8_t pin);                               // 12-bits oversampled analogread 
 void SpeedMeter(const int& speed);                                      // Speedmeter drawing helper function

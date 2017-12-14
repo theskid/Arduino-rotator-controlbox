@@ -14,7 +14,7 @@
 #include "Displays.h"                                                   // Displays and initializations
 #include "SerialPrint.h"                                                // Serial (and debug) print(f) helpers
 
-/*** PIN DESIGNATION *************************************/
+/*** PIN DESIGNATION AND COMPONENTS SETTINGS *************/
 
 const int StartStopSwitch = 12;
 const int UserActionSwitch = 8;
@@ -27,16 +27,25 @@ const uint8_t spdSetPotentiometer = A0;
 const uint8_t beamSetPotentiometer = A1;
 const uint8_t rotatorSensor = A2;
 
-/*** GENERAL CONFIGURATION *******************************/
-
-#define FASTADC 1                                                       // Fast ADC for 12bit readings
-
-#define MIN_AZIMUTH 0                                                   // N
-#define MAX_AZIMUTH 359                                                 // N, 1° W
 #define POTENTIOMETER_MAX 1023                                          // Potentiometer range [0..x]
 
 const int rotatorStart = 1847;
 const int rotatorStop = 2245;
+
+/*** GLOBAL VARIABLES ************************************/
+
+#define FASTADC                                                         // Fast ADC for 12bit readings
+
+#define MIN_AZIMUTH 0                                                   // N
+#define MAX_AZIMUTH 359                                                 // N, 1° W
+
+int beamDir = 0;                                                        // Actual beam direction
+int beamSet = 0;                                                        // Beam directione to set
+int spdValue = 0;                                                       // Rotation speed
+
+boolean bMoveAntenna = false;                                           // Start Stop flag
+boolean bSpeedModeAuto = true;                                          // Speed Mode Flag
+boolean bChoosingNewAngle = false;                                      // User Action flag
 
 /*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
 
@@ -47,21 +56,20 @@ const BUTTON_MAP ButtonsMap[] = {
 };
 #define BUTTON_COUNT sizeof ButtonsMap / sizeof ButtonsMap[0]
 
-/*** GLOBAL VARIABLES ************************************/
 
-int beamDir = 0;                                                        // Actual beam direction
-int beamSet = 0;                                                        // Beam directione to set
-int spdValue = 0;                                                       // Rotation speed
+/*******************************************************************
+**** THERE BE DRAGONS **********************************************
+*******************************************************************/
 
-boolean bMoveAntenna = false;                                           // Start Stop flag
-boolean bSpeedModeAuto = true;                                          // Speed Mode Flag
-boolean bChoosingNewAngle = true;                                       // User Action flag
+// Sensors reading helpers
+#define ReadBeamDir() map(AnalogRead12Bits(rotatorSensor), rotatorStart, rotatorStop, MIN_AZIMUTH, MAX_AZIMUTH)
+#define ReadBeamSet() map(analogRead(beamSetPotentiometer), 0, POTENTIOMETER_MAX, MIN_AZIMUTH, MAX_AZIMUTH)
 
 // Arduino board bootstrap setup
 void setup() {
     Serial.begin(9600);
 
-    #if FASTADC
+    #ifndef FASTADC
         // defines for setting and clearing register bits
         #define fastadc_cbit(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
         #define fastadc_sbit(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
@@ -75,10 +83,8 @@ void setup() {
     InitializeDisplay();
     DrawInitialScreen();
     ConfigureIOPins();
-    BeamSetting();
-    bChoosingNewAngle = false;
-    BeamSetting();
-    BeamDirControl();
+    BeamSetting(true);
+    BeamDirControl(true);
 }
 
 // Main loop
@@ -102,14 +108,15 @@ void loop() {
     #endif
 }
 
-// (Re)draw the azimutal beam direction
-void BeamDirControl() {
+// Update the azimuthal beam direction
+inline void BeamDirControl(const bool& forceUpdate) {
     static int lastBDReading = 0;
     COLORS color = COLORS::Green;
-    if (beamSet != beamDir) {
-        color = COLORS::Yellow;
+    if (forceUpdate || (beamSet != beamDir)) {
+        if (beamSet != beamDir)
+            color = COLORS::Yellow;
         // Replace the old Azimut direction beam with the current direction
-        int r = map(AnalogRead12Bits(rotatorSensor), rotatorStart, rotatorStop, MIN_AZIMUTH, MAX_AZIMUTH);
+        int r = ReadBeamDir();
         if (r != lastBDReading) {
             beamDir = r;
             DrawBeamHead(lastBDReading, beamDir, BeamDIR);
@@ -119,14 +126,15 @@ void BeamDirControl() {
     UserPrintAngle(0, 113, beamDir, color);
 }
 
-// (Re)draw the azimutal beam setting direction
-void BeamSetting() {
+// Update the azimuthal beam setting direction
+inline void BeamSetting(const bool& forceUpdate) {
     static int lastBSReading = 0;
     COLORS color = COLORS::Green;
-    if (bChoosingNewAngle) {
-        color = COLORS::Yellow;
+    if (forceUpdate || (bChoosingNewAngle)) {
+        if (!forceUpdate)
+            color = COLORS::Yellow;
         // Update the angle and define the shortest route to it
-        int r = map(analogRead(beamSetPotentiometer), 0, POTENTIOMETER_MAX, MIN_AZIMUTH, MAX_AZIMUTH);
+        int r = ReadBeamSet();
         if (r != lastBSReading)
         {
             beamSet = r;
@@ -353,7 +361,7 @@ void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
 }
 
 // Print the angle
-void UserPrintAngle (int x, int y, int angle, COLORS color) {
+inline void UserPrintAngle(int x, int y, int angle, COLORS color) {
     // Overlaps
     if (0 > angle)
     {
@@ -373,7 +381,7 @@ void UserPrintAngle (int x, int y, int angle, COLORS color) {
 }
 
 // Multisampling for 12bit readings
-int AnalogRead12Bits(uint8_t pin) {
+inline int AnalogRead12Bits(uint8_t pin) {
     int Result = 0;
     analogRead(pin);                                                    // Switch ADC
     for (int i = 0; i < 16; i++) {                                      // Read 16 times
