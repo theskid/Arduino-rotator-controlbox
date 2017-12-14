@@ -255,7 +255,6 @@ void StartStopAction() {
         dest = abs(beamDir - (beamSet - 360)) < abs(beamDir - beamSet) ? beamSet - 360 : beamSet;
     if (overlapTolerance <= (beamSet + 1))
         dest = abs(beamDir - (beamSet + 1)) < abs(beamDir - beamSet) ? beamSet + 1 : beamSet;
-    int rotation = beamDir - dest;
 
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
@@ -268,10 +267,10 @@ void StartStopAction() {
         }*/
         if (beamDir == dest) {
             bMoveAntenna = false;
-        } else if (0 > rotation) {
-            cw = HIGH;
-            strcat(&msg[1], "CW ");
-        } else if (0 < rotation) {
+        } else if (beamDir < dest) {
+            cw = HIGH
+            dest(&msg[1], "CW "beamDir)
+        } else if (beamDir > dest) {
             ccw = HIGH;
             strcat(&msg[0], "CCW ");
         }
