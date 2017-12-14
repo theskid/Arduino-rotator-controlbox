@@ -268,10 +268,10 @@ void StartStopAction() {
         }*/
         if (beamDir == dest) {
             bMoveAntenna = false;
-        } else if (0 < rotation) {
+        } else if (0 > rotation) {
             cw = HIGH;
             strcat(&msg[1], "CW ");
-        } else if (0 > rotation) {
+        } else if (0 < rotation) {
             ccw = HIGH;
             strcat(&msg[0], "CCW ");
         }
