@@ -1,5 +1,5 @@
 // Antenna Rotator Controlbox
-// Version 6 Rev. 1
+// Version 6 Rev. 2
 //
 // Dependencies:
 // Font SevenSegmentFull.c (http://www.rinkydinkelectronics.com/r_fonts.php)
@@ -92,7 +92,7 @@ inline void InitializeDisplay(int displayType);                         // Gener
 inline void ConfigureIOPins();                                          // Pins initialization
 inline void DrawInitialScreen();                                        // Initial screen overlay
 void UserPrint(int x, int y, String userData, Colors COLOR);            // String printer helper function
-void DrawBeamHead(const int&, const BHTYPE&, const boolean& = false);   // Beam drawing helper function
+void DrawBeamHead(int, const BHTYPE&, const boolean& = false);          // Beam drawing helper function
 void UserPrintAngle(int x, int y, int userAngle, Colors COLOR);         // Angle drawing through SevenSegmentFull font
 inline void CheckButtons();                                             // Button tracking
 void StartStopToggle();                                                 // Start/Stop button event toggle
@@ -125,9 +125,9 @@ AREA overWarnSig;
 UTFT utftDisplay(ILI9481, 38, 39, 40, 41);
 UTFT_Geometry geo(&utftDisplay);
 
-int beamDir = 1;                                                        // Actual beam direction
-int beamSet = 1;                                                        // Beam directione to set
-int spdValue = 1;                                                       // Rotation speed
+int beamDir = 0;                                                        // Actual beam direction
+int beamSet = 0;                                                        // Beam directione to set
+int spdValue = 0;                                                       // Rotation speed
 
 boolean bMoveAntenna = false;                                           // Start Stop flag
 boolean bSpeedModeAuto = true;                                          // Speed Mode Flag
@@ -188,16 +188,17 @@ void BeamDirControl() {
         DrawBeamHead(beamDir, BeamDIR, true);
         rawAngle = AnalogRead12Bits(rotatorSensor);
         beamDir = map(rawAngle, rotatorStart, rotatorStop, minAzimut, maxAzimut);
-        if (beamDir < 0) {
+/*        if (beamDir < 0) {
           beamDir = 360 - (abs(beamDir % 360));
           overWarn = -1;
         }
         if (beamDir > 359) {
           beamDir = beamDir % 360;
           overWarn = 1;
-        }
+        }*/
         DrawBeamHead(beamDir, BeamDIR);
         color = yellow;
+    
     }
     OverlapWarning ();
     UserPrintAngle(0, 113, beamDir, color);
@@ -239,38 +240,38 @@ void AutoManualToggle() {
 void StartStopAction() {
     DebugPrint("Entering StartStopAction()\n");
     DebugPrintf("valore di overWarn == %d\n", overWarn);
-    int inverse = 180;
-    int rightOver = minAzimut+overlapTolerance;
-    int leftOver = maxAzimut-overlapTolerance;
+/*
+**  beamSet = destinazione
+    beamDir = attuale
+
+    left = minAzimut - overlapTolerance
+    right = maxAzimut + overlapTolerance
+*/
+    int min = minAzimut - overlapTolerance;
+    int max = maxAzimut + overlapTolerance;
+    int dest = beamSet;
+
+    if (-overlapTolerance <= (beamSet - 360))
+        dest = abs(beamDir - (beamSet - 360)) < abs(beamDir - beamSet) ? beamSet - 360 : beamSet;
+    if (overlapTolerance <= (beamSet + 1))
+        dest = abs(beamDir - (beamSet + 1)) < abs(beamDir - beamSet) ? beamSet + 1 : beamSet;
+    int rotation = beamDir - dest;
+
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
     char msg[5] = "    ";
-    if (bMoveAntenna) {
+    if (bMoveAntenna) {/*
         if (beamSet < minAzimut+overlapTolerance) {
             inverse = beamSet + 180;
         } else if (beamSet > maxAzimut-overlapTolerance) {
             inverse = beamSet - 180;
-        }
-        if (beamDir == beamSet) {
+        }*/
+        if (beamDir == dest) {
             bMoveAntenna = false;
-        } else if (
-                ((beamDir < beamSet) && (inverse == 180) && (overWarn == 0)) ||                            // normale
-                ((beamSet < rightOver) && (overWarn == 1) && (beamDir < beamSet)) ||                       // destinazione e partenza sono a destra in over con partenza inferiore a destinazione OK
-                ((beamSet > leftOver) && (overWarn == -1) && (beamDir < beamSet)) ||                       // destinazione e partenza sono a sinistra in over con partenza inferiore a destinazione OK
-                ((beamSet > leftOver) && (overWarn == 0) && (beamDir > inverse) && (beamDir < beamSet)) || // destinazione in zona over partenza in zona normale piu vicina alla destinazione (non parte per fare l'overlap)
-                ((beamSet < rightOver) && (overWarn == 0) && (beamDir > inverse)) ||                       // destinazione in zona over partenza in zona normale piu vicina alla destinazione (parte per fare l'overlap)
-                ((beamSet < leftOver) && (overWarn == -1) && (beamDir > beamSet))                          // destinazione in zona normale patenza in zona over sx (parte per il rientro dall'overlap
-              ) {
+        } else if (0 < rotation) {
             cw = HIGH;
             strcat(&msg[1], "CW ");
-        } else if (
-                ((beamDir > beamSet) && (inverse == 180) && (overWarn == 0)) ||                             //normale
-                ((beamSet < rightOver) && (overWarn == 1) && (beamDir > beamSet)) ||                        // destinazione e partenza sono a destra in over con partenza superiore a destinazione OK 
-                ((beamSet > leftOver) && (overWarn == -1) && (beamDir > beamSet)) ||                        // destinazione e partenza sono a sinistra in over con partenza superiore a destinazione OK
-                ((beamSet > leftOver) && (overWarn == 0) && (beamDir < inverse)) ||                         // destinazione in zona over partenza in zona normale piu vicina alla destinazione (parte per fare l'overlap)
-                ((beamSet < rightOver) && (overWarn == 0) && (beamDir < inverse) && (beamDir > beamSet)) || // destinazione in zona over partenza in zona normale piu vicina alla destinazione (non parte per fare l'overlap)
-                ((beamSet > rightOver) && (overWarn == 1) && (beamDir < beamSet))                           // destinazione in zona normale patenza in zona over dx (parte per il rientro dall'overlap
-              ) {
+        } else if (0 > rotation) {
             ccw = HIGH;
             strcat(&msg[0], "CCW ");
         }
@@ -407,10 +408,14 @@ void DrawInitialScreen() {
 }
 
 // Draw the beam
-void DrawBeamHead(const int& angle, const BHTYPE& type, const boolean& bErase) {
+void DrawBeamHead(int angle, const BHTYPE& type, const boolean& bErase) {
     static boolean bInitialized = false;
     static float dist[360];
     static int dx[360], dy[360], x2[360], y2[360];
+    if (0 > angle)
+        angle += 360;
+    if (359 < angle)
+        angle -= 360;
     int x2a, y2a, x3, y3, x4, y4;
     int h = (BHTYPE::BeamDIR == type ? 12 : 10);
     int w = 10;
@@ -469,12 +474,16 @@ void DrawBeamHead(const int& angle, const BHTYPE& type, const boolean& bErase) {
 }
 
 // Print the angle
-void UserPrintAngle (int x, int y, int userAngle, Colors COLOR) {
-    char angle[4];                                                      // 3 digit + null string terminator (\0)
-    sprintf(angle, "%03d", userAngle);
+void UserPrintAngle (int x, int y, int angle, Colors COLOR) {
+    if (0 > angle)
+        angle += 360;
+    if (359 < angle)
+        angle -= 360;
+    char buff[4];                                                      // 3 digit + null string terminator (\0)
+    sprintf(buff, "%03d", angle);
     utftDisplay.setColor(COLOR);
     utftDisplay.setFont(SevenSegmentFull);
-    utftDisplay.print(angle, x, y);
+    utftDisplay.print(buff, x, y);
 }
 
 // Multisampling for 12bit readings
