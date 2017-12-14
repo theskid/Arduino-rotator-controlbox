@@ -36,11 +36,12 @@ extern uint8_t BigFont[];
 extern uint8_t SmallFont[];
 extern uint8_t SevenSegmentFull[];
 
-// Fast ADC for 12bit readings
-#define FASTADC 1
+#define FASTADC 1                                                       // Fast ADC for 12bit readings
 
-const int minAzimut = 0;
-const int maxAzimut = 359;
+#define MIN_AZIMUTH 0                                                   // N
+#define MAX_AZIMUTH 359                                                 // N, 1° W
+#define POTENTIOMETER_MAX 1023                                          // Potentiometer range [0..x]
+
 const int rotatorStart = 1847;
 const int rotatorStop = 2245;
 
@@ -92,7 +93,7 @@ inline void InitializeDisplay(int displayType);                         // Gener
 inline void ConfigureIOPins();                                          // Pins initialization
 inline void DrawInitialScreen();                                        // Initial screen overlay
 void UserPrint(int x, int y, String userData, Colors COLOR);            // String printer helper function
-void DrawBeamHead(int, const BHTYPE&, const boolean& = false);          // Beam drawing helper function
+void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type);         // Beam drawing helper function
 void UserPrintAngle(int x, int y, int userAngle, Colors COLOR);         // Angle drawing through SevenSegmentFull font
 inline void CheckButtons();                                             // Button tracking
 void StartStopToggle();                                                 // Start/Stop button event toggle
@@ -113,6 +114,7 @@ const BUTTON_MAP ButtonsMap[] = {
     { StartStopSwitch, StartStopToggle },
     { SpeedControlSwitch, AutoManualToggle },
 };
+#define BUTTON_COUNT sizeof ButtonsMap / sizeof ButtonsMap[0]
 
 /*** GLOBAL VARIABLES ************************************/
 
@@ -180,41 +182,39 @@ void loop() {
 
 // (Re)draw the azimutal beam direction
 void BeamDirControl() {
-    int rawAngle;
-    overWarn = 0;
+    static int lastBDReading = 0;
     Colors color = green;
     if (beamSet != beamDir) {
-        // Replace the old Azimut direction beam with the current direction
-        DrawBeamHead(beamDir, BeamDIR, true);
-        rawAngle = AnalogRead12Bits(rotatorSensor);
-        beamDir = map(rawAngle, rotatorStart, rotatorStop, minAzimut, maxAzimut);
-/*        if (beamDir < 0) {
-          beamDir = 360 - (abs(beamDir % 360));
-          overWarn = -1;
-        }
-        if (beamDir > 359) {
-          beamDir = beamDir % 360;
-          overWarn = 1;
-        }*/
-        DrawBeamHead(beamDir, BeamDIR);
         color = yellow;
-    
+        // Replace the old Azimut direction beam with the current direction
+        int r = map(AnalogRead12Bits(rotatorSensor), rotatorStart, rotatorStop, MIN_AZIMUTH, MAX_AZIMUTH);
+        if (r != lastBDReading) {
+            beamDir = r;
+            DrawBeamHead(lastBDReading, beamDir, BeamDIR);
+            lastBDReading = beamDir;
+        }
     }
-    OverlapWarning ();
     UserPrintAngle(0, 113, beamDir, color);
 }
 
 // (Re)draw the azimutal beam setting direction
 void BeamSetting() {
-    int rawAngle;
+    static int lastBSReading = 0;
     Colors color = green;
     if (bChoosingNewAngle) {
-        // Replace the old Azimut setting beam with the current direction
-        DrawBeamHead(beamSet, BeamSET, true);
-        rawAngle = analogRead(beamSetPotentiometer);
-        beamSet = map(rawAngle, 0, 1023, minAzimut, maxAzimut);
-        DrawBeamHead(beamSet, BeamSET);
         color = yellow;
+        // Update the angle and define the shortest route to it
+        int r = map(analogRead(beamSetPotentiometer), 0, POTENTIOMETER_MAX, MIN_AZIMUTH, MAX_AZIMUTH);
+        if (r != lastBSReading)
+        {
+            beamSet = r;
+            if (overlapTolerance >= (360 - r))
+                beamSet = abs(beamDir - (r - 360)) < abs(beamDir - r) ? r - 360 : r;
+            if (overlapTolerance >= (r + 1))
+                beamSet = abs(beamDir - (r + 360)) < abs(beamDir - r) ? r + 360 : r;
+            DrawBeamHead(lastBSReading, beamSet, BeamSET);
+            lastBSReading = beamSet;
+        }
     }
     UserPrintAngle(0, 213, beamSet, color);
 }
@@ -239,38 +239,17 @@ void AutoManualToggle() {
 
 void StartStopAction() {
     DebugPrint("Entering StartStopAction()\n");
-    DebugPrintf("valore di overWarn == %d\n", overWarn);
-/*
-**  beamSet = destinazione
-    beamDir = attuale
 
-    left = minAzimut - overlapTolerance
-    right = maxAzimut + overlapTolerance
-*/
-    int min = minAzimut - overlapTolerance;
-    int max = maxAzimut + overlapTolerance;
-    int dest = beamSet;
-
-    if (overlapTolerance >= (360 - beamSet))
-        dest = abs(beamDir - (beamSet - 360)) < abs(beamDir - beamSet) ? beamSet - 360 : beamSet;
-    if (overlapTolerance >= (beamSet + 1))
-        dest = abs(beamDir - (beamSet + 360)) < abs(beamDir - beamSet) ? beamSet + 360 : beamSet;
-    DebugPrintf("Tolleranza: %d\nDestinazione: %d\nBeamSet: %d\nBeamDir: %d\n\n", overlapTolerance, dest, beamSet, beamDir);
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
     char msg[5] = "    ";
-    if (bMoveAntenna) {/*
-        if (beamSet < minAzimut+overlapTolerance) {
-            inverse = beamSet + 180;
-        } else if (beamSet > maxAzimut-overlapTolerance) {
-            inverse = beamSet - 180;
-        }*/
-        if (beamDir == dest) {
+    if (bMoveAntenna) {
+        if (beamDir == beamSet) {
             bMoveAntenna = false;
-        } else if (beamDir < dest) {
+        } else if (beamDir < beamSet) {
             cw = HIGH;
             strcat(&msg[1], "CW ");
-        } else if (beamDir > dest) {
+        } else if (beamDir > beamSet) {
             ccw = HIGH;
             strcat(&msg[0], "CCW ");
         }
@@ -288,11 +267,11 @@ void AutoManualAction() {
     int rawSpdValue;
     if (!bSpeedModeAuto) {
         rawSpdValue = analogRead(spdSetPotentiometer);
-        spdValue = map(rawSpdValue, 0, 1023, 0, 255);
+        spdValue = map(rawSpdValue, 0, POTENTIOMETER_MAX, 0, 255);
         analogWrite(PWMSpeedControl, spdValue);
         utftDisplay.setColor(yellow);
         utftDisplay.setFont(BigFont);
-        utftDisplay.print("Manual ", RIGHT, 12);
+        utftDisplay.print(F("Manual "), RIGHT, 12);
     } else {
         if (bMoveAntenna) {
             int rotationValue = abs(beamSet - beamDir);
@@ -306,11 +285,11 @@ void AutoManualAction() {
         analogWrite(PWMSpeedControl, spdValue);
         utftDisplay.setColor(yellow);
         utftDisplay.setFont(BigFont);
-        utftDisplay.print("  Auto ", RIGHT, 12); 
+        utftDisplay.print(F("  Auto "), RIGHT, 12); 
     }
     utftDisplay.setColor(yellow);
     utftDisplay.setFont(BigFont);
-    utftDisplay.printNumI(spdValue,RIGHT, 38,3,' ');
+    utftDisplay.printNumI(spdValue, RIGHT, 38, 3, ' ');
     SpeedMeter(spdValue);
     DebugPrint("Exiting AutoManualAction()\n");
 }
@@ -318,8 +297,8 @@ void AutoManualAction() {
 // Checks buttons status and fires corresponding events
 void CheckButtons() {
     // Keep track of buttons status, to avoid trigger ghosting/multi-fire
-    static BUTTON_STATE buttonState[sizeof(ButtonsMap)] = { BUTTON_STATE::Released };
-    for (int c = 0; c < sizeof(ButtonsMap); c++) {
+    static BUTTON_STATE buttonState[BUTTON_COUNT] = { BUTTON_STATE::Released };
+    for (int c = 0; c < BUTTON_COUNT; c++) {
         uint8_t state = digitalRead(ButtonsMap[c].DigitalPin);
         // Trigger button event on release
         if ((HIGH == state) && (BUTTON_STATE::Released < buttonState[c])) {
@@ -407,10 +386,14 @@ void DrawInitialScreen() {
 }
 
 // Draw the beam
-void DrawBeamHead(int angle, const BHTYPE& type, const boolean& bErase) {
+void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
     static boolean bInitialized = false;
     static float dist[360];
     static int dx[360], dy[360], x2[360], y2[360];
+    if (0 > oldAngle)
+        oldAngle += 360;
+    if (359 < oldAngle)
+        oldAngle -= 360;
     if (0 > angle)
         angle += 360;
     if (359 < angle)
@@ -431,42 +414,52 @@ void DrawBeamHead(int angle, const BHTYPE& type, const boolean& bErase) {
             dy[a] = Y + (w / 6) * (y2[a] - Y) / h;
         }
     }
-    x2a = X - dx[angle];
-    y2a = dy[angle] - Y;
-    x3 = y2a + dx[angle];
-    y3 = x2a + dy[angle];
-    x4 = dx[angle] - y2a;
-    y4 = dy[angle] - x2a;
-    if (bErase) {
-        utftDisplay.setColor(black);
-        geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
-        geo.drawTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
-        geo.fillTriangle(x3, y3, X, Y, x4, y4);
-        geo.drawTriangle(x3, y3, X, Y, x4, y4);
-    } else {
-        switch (type) {
-            case BHTYPE::BeamDIR:
-                utftDisplay.setColor(colorDir);
-                geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
-                geo.drawTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
-                geo.fillTriangle(x3, y3, X, Y, x4, y4);
-                geo.drawTriangle(x3, y3, X, Y, x4, y4);
-                break;
-            case BHTYPE::BeamSET:
-                utftDisplay.setColor(black);
-                geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
-                geo.fillTriangle(x3, y3, X, Y, x4, y4);
-                utftDisplay.setColor(colorSet);
-                utftDisplay.drawLine(x3, y3, X, Y);
-                utftDisplay.drawLine(X, Y, x4, y4);
-                utftDisplay.drawLine(x4, y4, x2[angle], y2[angle]);
-                utftDisplay.drawLine(x2[angle], y2[angle], x3, y3);
-                utftDisplay.drawLine(X, Y, x2[angle], y2[angle]);
-                break;
-            default:
-                DebugPrintf("Invalid beam type drawing specified: %d\n", type);
-                break;
+    x2a = X - dx[oldAngle];
+    y2a = dy[oldAngle] - Y;
+    x3 = y2a + dx[oldAngle];
+    y3 = x2a + dy[oldAngle];
+    x4 = dx[oldAngle] - y2a;
+    y4 = dy[oldAngle] - x2a;
+    switch (type) {
+        case BHTYPE::BeamDIR: {
+            utftDisplay.setColor(Colors::black);
+            geo.fillTriangle(x2[oldAngle], y2[oldAngle], x3, y3, x4, y4);
+            geo.fillTriangle(x3, y3, X, Y, x4, y4);
+            x2a = X - dx[angle];
+            y2a = dy[angle] - Y;
+            x3 = y2a + dx[angle];
+            y3 = x2a + dy[angle];
+            x4 = dx[angle] - y2a;
+            y4 = dy[angle] - x2a;
+            utftDisplay.setColor(colorDir);
+            geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
+            geo.fillTriangle(x3, y3, X, Y, x4, y4);
+            break;
         }
+        case BHTYPE::BeamSET: {
+            utftDisplay.setColor(Colors::black);
+            utftDisplay.drawLine(x3, y3, X, Y);
+            utftDisplay.drawLine(X, Y, x4, y4);
+            utftDisplay.drawLine(x4, y4, x2[oldAngle], y2[oldAngle]);
+            utftDisplay.drawLine(x2[oldAngle], y2[oldAngle], x3, y3);
+            utftDisplay.drawLine(X, Y, x2[oldAngle], y2[oldAngle]);
+            x2a = X - dx[angle];
+            y2a = dy[angle] - Y;
+            x3 = y2a + dx[angle];
+            y3 = x2a + dy[angle];
+            x4 = dx[angle] - y2a;
+            y4 = dy[angle] - x2a;
+            utftDisplay.setColor(colorSet);
+            utftDisplay.drawLine(x3, y3, X, Y);
+            utftDisplay.drawLine(X, Y, x4, y4);
+            utftDisplay.drawLine(x4, y4, x2[angle], y2[angle]);
+            utftDisplay.drawLine(x2[angle], y2[angle], x3, y3);
+            utftDisplay.drawLine(X, Y, x2[angle], y2[angle]);
+            break;
+        }
+        default:
+            DebugPrintf("Invalid beam type specified: %d\n", type);
+            break;
     }
     utftDisplay.setColor(colorDir);
     utftDisplay.fillCircle(X, Y, 9);
@@ -474,10 +467,17 @@ void DrawBeamHead(int angle, const BHTYPE& type, const boolean& bErase) {
 
 // Print the angle
 void UserPrintAngle (int x, int y, int angle, Colors COLOR) {
+    // Overlaps
     if (0 > angle)
+    {
         angle += 360;
+        // Draw left overlap
+    }
     if (359 < angle)
+    {
         angle -= 360;
+        // Draw right overlap
+    }
     char buff[4];                                                      // 3 digit + null string terminator (\0)
     sprintf(buff, "%03d", angle);
     utftDisplay.setColor(COLOR);
@@ -523,7 +523,7 @@ void OverlapWarning () {
     if (overWarn != 0) {
         utftDisplay.setColor (red);
         utftDisplay.setFont(BigFont);
-        utftDisplay.print("OVER", minX+25, maxY+2);
+        utftDisplay.print(F("OVER"), minX+25, maxY+2);
         if (overWarn > 0) {
             x = maxX;
             width = -width;
