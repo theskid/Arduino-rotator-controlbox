@@ -254,8 +254,8 @@ void ConfigureIOPins() {
     analogReference(DEFAULT);
 }
 
-void UserPrint(int x, int y, String userData, COLORS COLOR) {
-    display->setColor(COLOR);
+void UserPrint(int x, int y, String userData, COLORS color) {
+    display->setColor(color);
     display->setFont(BigFont);
     display->print(userData, x, y);
 }
@@ -264,18 +264,18 @@ void UserPrint(int x, int y, String userData, COLORS COLOR) {
 void DrawInitialScreen() {
     int dxOuter, dyOuter, dxinner, dyinner;
     display->setColor(0, 255, 0);
-    display->drawCircle(X, Y, dm);
+    display->drawCircle(compass.X, compass.Y, compass.radius);
     for (float i = 0; i < 360; i += 22.5) {
         display->setColor(255, 128, 0);
-        dxOuter = dm * cos((i - 90) * PIover180);
-        dyOuter = dm * sin((i - 90) * PIover180);
+        dxOuter = compass.radius * cos((i - 90) * PIover180);
+        dyOuter = compass.radius * sin((i - 90) * PIover180);
         dxinner = dxOuter * 0.97;
         dyinner = dyOuter * 0.97;
-        display->drawLine(dxOuter + X, dyOuter + Y, dxinner + X, dyinner + Y);
+        display->drawLine(dxOuter + compass.X, dyOuter + compass.Y, dxinner + compass.X, dyinner + compass.Y);
         if (0 == (i - floor(i))) {
             dxinner = dxOuter * 0.92;
             dyinner = dyOuter * 0.92;
-            display->drawLine(dxinner + X, dyinner + Y, dxOuter + X, dyOuter + Y);
+            display->drawLine(dxinner + compass.X, dyinner + compass.Y, dxOuter + compass.X, dyOuter + compass.Y);
         }
     }
 }
@@ -292,12 +292,12 @@ void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
         bInitialized = true;
         int x2a, y2a, dx, dy;
         for (int a = 0; a < 360; a++) {
-            x2[a] = (dm * .9 * cos((a - 90) * PIover180)) + X;
-            y2[a] = (dm * .9 * sin((a - 90) * PIover180)) + Y;
-            dx = X + (w / 6) * (x2[a] - X) / h;
-            dy = Y + (w / 6) * (y2[a] - Y) / h;
-            x2a = X - dx;
-            y2a = dy - Y;
+            x2[a] = (compass.radius * .9 * cos((a - 90) * PIover180)) + compass.X;
+            y2[a] = (compass.radius * .9 * sin((a - 90) * PIover180)) + compass.Y;
+            dx = compass.X + (w / 6) * (x2[a] - compass.X) / h;
+            dy = compass.Y + (w / 6) * (y2[a] - compass.Y) / h;
+            x2a = compass.X - dx;
+            y2a = dy - compass.Y;
             x3[a] = y2a + dx;
             y3[a] = x2a + dy;
             x4[a] = dx - y2a;
@@ -322,16 +322,16 @@ void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
             case BHTYPE::BeamDIR: {
                 display->setColor(color);
                 geo->fillTriangle(x2[a], y2[a], x3[a], y3[a], x4[a], y4[a]);
-                geo->fillTriangle(x3[a], y3[a], X, Y, x4[a], y4[a]);
+                geo->fillTriangle(x3[a], y3[a], compass.X, compass.Y, x4[a], y4[a]);
                 break;
             }
             case BHTYPE::BeamSET: {
                 display->setColor(color);
-                display->drawLine(x3[a], y3[a], X, Y);
-                display->drawLine(X, Y, x4[a], y4[a]);
+                display->drawLine(x3[a], y3[a], compass.X, compass.Y);
+                display->drawLine(compass.X, compass.Y, x4[a], y4[a]);
                 display->drawLine(x4[a], y4[a], x2[a], y2[a]);
                 display->drawLine(x2[a], y2[a], x3[a], y3[a]);
-                display->drawLine(X, Y, x2[a], y2[a]);
+                display->drawLine(compass.X, compass.Y, x2[a], y2[a]);
                 break;
             }
         }
@@ -339,7 +339,7 @@ void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
 
     // Always redraw the pivot
     display->setColor(colorDir);
-    display->fillCircle(X, Y, 9);
+    display->fillCircle(compass.X, compass.Y, 9);
 }
 
 // Print the angle
