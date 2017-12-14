@@ -9,11 +9,9 @@
 #include <UTFT.h>
 #include <UTFT_Geometry.h>
 
-typedef enum {                                                          // @TODO Going to remove the enum in favor of defines
-    TFT_HVGA_480x320 = 1,                                               // 3.2 480x320 TFTLCD Shield
-} DISPLAY_TYPE;
-
+#include "main.h"                                                       // Main header
 #include "Settings.h"                                                   // User settings take precedence (flags and debug mode)
+#include "Displays.h"                                                   // Displays and initializations
 #include "SerialPrint.h"                                                // Serial (and debug) print(f) helpers
 
 /*** PIN DESIGNATION *************************************/
@@ -31,11 +29,6 @@ const uint8_t rotatorSensor = A2;
 
 /*** GENERAL CONFIGURATION *******************************/
 
-// Font declarations
-extern uint8_t BigFont[];
-extern uint8_t SmallFont[];
-extern uint8_t SevenSegmentFull[];
-
 #define FASTADC 1                                                       // Fast ADC for 12bit readings
 
 #define MIN_AZIMUTH 0                                                   // N
@@ -44,68 +37,6 @@ extern uint8_t SevenSegmentFull[];
 
 const int rotatorStart = 1847;
 const int rotatorStop = 2245;
-
-/*** ENUMERATORS *****************************************/
-
-typedef enum {
-    black   = 0x0000,
-    blue    = 0x001F,
-    red     = 0xF800,
-    green   = 0x07E0,
-    cyan    = 0x07FF,
-    magenta = 0xF81F,
-    yellow  = 0xFFE0,
-    white   = 0xFFFF,
-    orange  = 0xF400
-} Colors;
-
-typedef enum {
-    BeamDIR = 1,
-    BeamSET = 2,
-} BHTYPE;
-
-typedef enum {
-    Released = 0,
-    Pressed = 1,
-    Held = 2,                                                           // Currently unused
-} BUTTON_STATE;
-
-/*** STRUCTURES ******************************************/
-
-typedef struct {
-    int DigitalPin;
-    void (*EventFunction)();
-} BUTTON_MAP;
-
-typedef struct {
-    int x;
-    int y;
-} POINT;
-
-typedef struct {
-    POINT tl;                                                           // Top left corner
-    POINT br;                                                           // Bottom right corner
-} AREA;
-
-/*** FUNCTION DECLARATIONS *******************************/
-
-inline void InitializeDisplay(int displayType);                         // Generic display initialization
-inline void ConfigureIOPins();                                          // Pins initialization
-inline void DrawInitialScreen();                                        // Initial screen overlay
-void UserPrint(int x, int y, String userData, Colors COLOR);            // String printer helper function
-void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type);         // Beam drawing helper function
-void UserPrintAngle(int x, int y, int userAngle, Colors COLOR);         // Angle drawing through SevenSegmentFull font
-inline void CheckButtons();                                             // Button tracking
-void StartStopToggle();                                                 // Start/Stop button event toggle
-inline void StartStopAction();                                          // Start/Stop in-loop actions
-void AutoManualToggle();                                                // Auto/Manual button event toggle
-inline void AutoManualAction();                                         // Auto/Manual in-loop actions
-void UserSetConfirmToggle();                                            // Set/Confirm button event toggle
-void BeamSetting();                                                     // Azimut setting potentiometer read
-inline void BeamDirControl();                                           // Azimut rotor potentiometer read
-int AnalogRead12Bits(uint8_t pin);                                      // 12-bits oversampled analogread 
-void SpeedMeter(const int& speed);                                      // Speedmeter drawing helper function
-inline void OverlapWarning ();                                          // Overlap signial drawing helper function
 
 /*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
 
@@ -117,15 +48,6 @@ const BUTTON_MAP ButtonsMap[] = {
 #define BUTTON_COUNT sizeof ButtonsMap / sizeof ButtonsMap[0]
 
 /*** GLOBAL VARIABLES ************************************/
-
-const float PIover180 = 3.1415926535897932384626433832795 / 180;
-
-int X, Y, dm, overWarn = 0;
-AREA speedMeter;
-AREA overWarnSig;
-
-UTFT utftDisplay(ILI9481, 38, 39, 40, 41);
-UTFT_Geometry geo(&utftDisplay);
 
 int beamDir = 0;                                                        // Actual beam direction
 int beamSet = 0;                                                        // Beam directione to set
@@ -150,7 +72,7 @@ void setup() {
         fastadc_cbit(ADCSRA, ADPS0);
     #endif
 
-    InitializeDisplay(DisplayType);
+    InitializeDisplay();
     DrawInitialScreen();
     ConfigureIOPins();
     BeamSetting();
@@ -183,9 +105,9 @@ void loop() {
 // (Re)draw the azimutal beam direction
 void BeamDirControl() {
     static int lastBDReading = 0;
-    Colors color = green;
+    COLORS color = COLORS::Green;
     if (beamSet != beamDir) {
-        color = yellow;
+        color = COLORS::Yellow;
         // Replace the old Azimut direction beam with the current direction
         int r = map(AnalogRead12Bits(rotatorSensor), rotatorStart, rotatorStop, MIN_AZIMUTH, MAX_AZIMUTH);
         if (r != lastBDReading) {
@@ -200,17 +122,17 @@ void BeamDirControl() {
 // (Re)draw the azimutal beam setting direction
 void BeamSetting() {
     static int lastBSReading = 0;
-    Colors color = green;
+    COLORS color = COLORS::Green;
     if (bChoosingNewAngle) {
-        color = yellow;
+        color = COLORS::Yellow;
         // Update the angle and define the shortest route to it
         int r = map(analogRead(beamSetPotentiometer), 0, POTENTIOMETER_MAX, MIN_AZIMUTH, MAX_AZIMUTH);
         if (r != lastBSReading)
         {
             beamSet = r;
-            if (overlapTolerance >= (360 - r))
+            if (OVERLAP_TOLERANCE >= (360 - r))
                 beamSet = abs(beamDir - (r - 360)) < abs(beamDir - r) ? r - 360 : r;
-            if (overlapTolerance >= (r + 1))
+            if (OVERLAP_TOLERANCE >= (r + 1))
                 beamSet = abs(beamDir - (r + 360)) < abs(beamDir - r) ? r + 360 : r;
             DrawBeamHead(lastBSReading, beamSet, BeamSET);
             lastBSReading = beamSet;
@@ -256,9 +178,9 @@ void StartStopAction() {
     }
     digitalWrite(CWMotor, cw);
     digitalWrite(CCWMotor, ccw);
-    utftDisplay.setColor(yellow);
-    utftDisplay.setFont(BigFont);
-    utftDisplay.print(msg, RIGHT, 25);
+    display->setColor(COLORS::Yellow);
+    display->setFont(BigFont);
+    display->print(msg, RIGHT, 25);
     DebugPrint("Exiting StartStopAction()\n");
 }
 
@@ -269,9 +191,9 @@ void AutoManualAction() {
         rawSpdValue = analogRead(spdSetPotentiometer);
         spdValue = map(rawSpdValue, 0, POTENTIOMETER_MAX, 0, 255);
         analogWrite(PWMSpeedControl, spdValue);
-        utftDisplay.setColor(yellow);
-        utftDisplay.setFont(BigFont);
-        utftDisplay.print(F("Manual "), RIGHT, 12);
+        display->setColor(COLORS::Yellow);
+        display->setFont(BigFont);
+        display->print(F("Manual "), RIGHT, 12);
     } else {
         if (bMoveAntenna) {
             int rotationValue = abs(beamSet - beamDir);
@@ -283,13 +205,13 @@ void AutoManualAction() {
             spdValue = 0;
         }
         analogWrite(PWMSpeedControl, spdValue);
-        utftDisplay.setColor(yellow);
-        utftDisplay.setFont(BigFont);
-        utftDisplay.print(F("  Auto "), RIGHT, 12); 
+        display->setColor(COLORS::Yellow);
+        display->setFont(BigFont);
+        display->print(F("  Auto "), RIGHT, 12); 
     }
-    utftDisplay.setColor(yellow);
-    utftDisplay.setFont(BigFont);
-    utftDisplay.printNumI(spdValue, RIGHT, 38, 3, ' ');
+    display->setColor(COLORS::Yellow);
+    display->setFont(BigFont);
+    display->printNumI(spdValue, RIGHT, 38, 3, ' ');
     SpeedMeter(spdValue);
     DebugPrint("Exiting AutoManualAction()\n");
 }
@@ -311,41 +233,6 @@ void CheckButtons() {
     }
 }
 
-// Initializes the TFTLCD 3.2 HVGA 480x320 display shield
-void InitializeDisplayHVGA480x320() {
-    X = 285;
-    Y = 160;
-    dm = 120;
-    speedMeter = { { 445, 58 }, { 470, 310 } };
-    overWarnSig = { { 320, 290 }, { 434, 310 } };
-    utftDisplay.InitLCD(LANDSCAPE);
-    utftDisplay.clrScr();
-    utftDisplay.setFont(BigFont);
-    UserPrint(0, 12, "ANTENNA ROTATOR", orange);
-    UserPrint(40, 36, "CONTROLLER", orange);
-    utftDisplay.drawLine(X+(dm-10), Y, X+(dm+10), Y);
-    utftDisplay.drawLine(X-(dm-10), Y, X-(dm+10), Y);
-    utftDisplay.drawLine(X, Y-(dm-10), X, Y-(dm+10));
-    utftDisplay.drawLine(X, Y+(dm-10), X, Y+(dm+10));
-    utftDisplay.drawCircle(X, Y, dm);
-    UserPrint(0, 75, "BEAM DIR", red);
-    UserPrint(0, 175, "BEAM SET", red);
-    UserPrint(0, 290, QRZ + " : " + NAME, white);
-    UserPrint((X-8), (Y-(dm+27)), "N", red);
-    UserPrint((X-8), (Y+(dm+15)), "S", red);
-    UserPrint((X+(dm+13)), (Y-7), "E", red);
-    UserPrint((X-(dm+30)), (Y-7), "W", red);
-    utftDisplay.setColor (green);
-    utftDisplay.drawRect (speedMeter.tl.x,speedMeter.tl.y,speedMeter.br.x,speedMeter.br.y);
-}
-
-// Select the proper initalization for the selected display type
-void InitializeDisplay(int displayNumber) {
-    switch (displayNumber) {
-        case TFT_HVGA_480x320: InitializeDisplayHVGA480x320(); break;
-    }
-}
-
 // Initialize the pin configuration
 void ConfigureIOPins() {
     pinMode(StartStopSwitch, INPUT);
@@ -359,28 +246,28 @@ void ConfigureIOPins() {
     analogReference(DEFAULT);
 }
 
-void UserPrint(int x, int y, String userData, Colors COLOR) {
-    utftDisplay.setColor(COLOR);
-    utftDisplay.setFont(BigFont);
-    utftDisplay.print(userData, x, y);
+void UserPrint(int x, int y, String userData, COLORS COLOR) {
+    display->setColor(COLOR);
+    display->setFont(BigFont);
+    display->print(userData, x, y);
 }
 
 // Draw the screen overlay
 void DrawInitialScreen() {
     int dxOuter, dyOuter, dxinner, dyinner;
-    utftDisplay.setColor(0, 255, 0);
-    utftDisplay.drawCircle(X, Y, dm);
+    display->setColor(0, 255, 0);
+    display->drawCircle(X, Y, dm);
     for (float i = 0; i < 360; i += 22.5) {
-        utftDisplay.setColor(255, 128, 0);
+        display->setColor(255, 128, 0);
         dxOuter = dm * cos((i - 90) * PIover180);
         dyOuter = dm * sin((i - 90) * PIover180);
         dxinner = dxOuter * 0.97;
         dyinner = dyOuter * 0.97;
-        utftDisplay.drawLine(dxOuter + X, dyOuter + Y, dxinner + X, dyinner + Y);
+        display->drawLine(dxOuter + X, dyOuter + Y, dxinner + X, dyinner + Y);
         if (0 == (i - floor(i))) {
             dxinner = dxOuter * 0.92;
             dyinner = dyOuter * 0.92;
-            utftDisplay.drawLine(dxinner + X, dyinner + Y, dxOuter + X, dyOuter + Y);
+            display->drawLine(dxinner + X, dyinner + Y, dxOuter + X, dyOuter + Y);
         }
     }
 }
@@ -401,8 +288,8 @@ void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
     int x2a, y2a, x3, y3, x4, y4;
     int h = (BHTYPE::BeamDIR == type ? 12 : 10);
     int w = 10;
-    Colors colorDir = red;
-    Colors colorSet = green;
+    COLORS colorDir = COLORS::Red;
+    COLORS colorSet = COLORS::Green;
     // For faster drawing and reduced computation, we pre-build a lookup tables for the heavy lifting computation
     if (!bInitialized) {
         bInitialized = true;
@@ -422,51 +309,51 @@ void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
     y4 = dy[oldAngle] - x2a;
     switch (type) {
         case BHTYPE::BeamDIR: {
-            utftDisplay.setColor(Colors::black);
-            geo.fillTriangle(x2[oldAngle], y2[oldAngle], x3, y3, x4, y4);
-            geo.fillTriangle(x3, y3, X, Y, x4, y4);
+            display->setColor(COLORS::Black);
+            geo->fillTriangle(x2[oldAngle], y2[oldAngle], x3, y3, x4, y4);
+            geo->fillTriangle(x3, y3, X, Y, x4, y4);
             x2a = X - dx[angle];
             y2a = dy[angle] - Y;
             x3 = y2a + dx[angle];
             y3 = x2a + dy[angle];
             x4 = dx[angle] - y2a;
             y4 = dy[angle] - x2a;
-            utftDisplay.setColor(colorDir);
-            geo.fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
-            geo.fillTriangle(x3, y3, X, Y, x4, y4);
+            display->setColor(colorDir);
+            geo->fillTriangle(x2[angle], y2[angle], x3, y3, x4, y4);
+            geo->fillTriangle(x3, y3, X, Y, x4, y4);
             break;
         }
         case BHTYPE::BeamSET: {
-            utftDisplay.setColor(Colors::black);
-            utftDisplay.drawLine(x3, y3, X, Y);
-            utftDisplay.drawLine(X, Y, x4, y4);
-            utftDisplay.drawLine(x4, y4, x2[oldAngle], y2[oldAngle]);
-            utftDisplay.drawLine(x2[oldAngle], y2[oldAngle], x3, y3);
-            utftDisplay.drawLine(X, Y, x2[oldAngle], y2[oldAngle]);
+            display->setColor(COLORS::Black);
+            display->drawLine(x3, y3, X, Y);
+            display->drawLine(X, Y, x4, y4);
+            display->drawLine(x4, y4, x2[oldAngle], y2[oldAngle]);
+            display->drawLine(x2[oldAngle], y2[oldAngle], x3, y3);
+            display->drawLine(X, Y, x2[oldAngle], y2[oldAngle]);
             x2a = X - dx[angle];
             y2a = dy[angle] - Y;
             x3 = y2a + dx[angle];
             y3 = x2a + dy[angle];
             x4 = dx[angle] - y2a;
             y4 = dy[angle] - x2a;
-            utftDisplay.setColor(colorSet);
-            utftDisplay.drawLine(x3, y3, X, Y);
-            utftDisplay.drawLine(X, Y, x4, y4);
-            utftDisplay.drawLine(x4, y4, x2[angle], y2[angle]);
-            utftDisplay.drawLine(x2[angle], y2[angle], x3, y3);
-            utftDisplay.drawLine(X, Y, x2[angle], y2[angle]);
+            display->setColor(colorSet);
+            display->drawLine(x3, y3, X, Y);
+            display->drawLine(X, Y, x4, y4);
+            display->drawLine(x4, y4, x2[angle], y2[angle]);
+            display->drawLine(x2[angle], y2[angle], x3, y3);
+            display->drawLine(X, Y, x2[angle], y2[angle]);
             break;
         }
         default:
             DebugPrintf("Invalid beam type specified: %d\n", type);
             break;
     }
-    utftDisplay.setColor(colorDir);
-    utftDisplay.fillCircle(X, Y, 9);
+    display->setColor(colorDir);
+    display->fillCircle(X, Y, 9);
 }
 
 // Print the angle
-void UserPrintAngle (int x, int y, int angle, Colors COLOR) {
+void UserPrintAngle (int x, int y, int angle, COLORS color) {
     // Overlaps
     if (0 > angle)
     {
@@ -480,9 +367,9 @@ void UserPrintAngle (int x, int y, int angle, Colors COLOR) {
     }
     char buff[4];                                                      // 3 digit + null string terminator (\0)
     sprintf(buff, "%03d", angle);
-    utftDisplay.setColor(COLOR);
-    utftDisplay.setFont(SevenSegmentFull);
-    utftDisplay.print(buff, x, y);
+    display->setColor(color);
+    display->setFont(SevenSegmentFull);
+    display->print(buff, x, y);
 }
 
 // Multisampling for 12bit readings
@@ -505,15 +392,15 @@ void SpeedMeter(const int& speed) {
     int maxY = speedMeter.tl.y + PADDING;
     #undef PADDING
     int mappedSpeed = map(speed, 0, 255, minY, maxY);
-    utftDisplay.setColor(black);
-    utftDisplay.fillRect(maxX, maxY, minX, mappedSpeed);
-    utftDisplay.setColor(red);
-    utftDisplay.fillRect(maxX, mappedSpeed, minX, minY);
+    display->setColor(COLORS::Black);
+    display->fillRect(maxX, maxY, minX, mappedSpeed);
+    display->setColor(COLORS::Red);
+    display->fillRect(maxX, mappedSpeed, minX, minY);
 }
 
 // Overlap signial drawing helper function
-void OverlapWarning () {        
-    int minX = overWarnSig.tl.x;
+/*void OverlapWarning () {        
+/*    int minX = overWarnSig.tl.x;
     int maxX = overWarnSig.br.x;
     int minY = overWarnSig.br.y;
     int maxY = overWarnSig.tl.y;
@@ -521,16 +408,16 @@ void OverlapWarning () {
     int width = (minY - maxY);
     int mid = maxY + (width >> 1);
     if (overWarn != 0) {
-        utftDisplay.setColor (red);
-        utftDisplay.setFont(BigFont);
-        utftDisplay.print(F("OVER"), minX+25, maxY+2);
+        display->setColor (red);
+        display->setFont(BigFont);
+        display->print(F("OVER"), minX+25, maxY+2);
         if (overWarn > 0) {
             x = maxX;
             width = -width;
         }
-        geo.fillTriangle(x+width, minY, x+width, maxY, x, mid);
+        geo->fillTriangle(x+width, minY, x+width, maxY, x, mid);
     } else {
-        utftDisplay.setColor (black);
-        utftDisplay.fillRect(maxX,maxY,minX,minY);
-    }
-}
+        display->setColor (black);
+        display->fillRect(maxX,maxY,minX,minY);
+    }* /
+}*/
