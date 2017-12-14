@@ -268,8 +268,8 @@ void StartStopAction() {
         if (beamDir == dest) {
             bMoveAntenna = false;
         } else if (beamDir < dest) {
-            cw = HIGH
-            dest(&msg[1], "CW "beamDir)
+            cw = HIGH;
+            strcat(&msg[1], "CW ");
         } else if (beamDir > dest) {
             ccw = HIGH;
             strcat(&msg[0], "CCW ");
