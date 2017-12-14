@@ -11,10 +11,13 @@ COMPASS compass;
 UTFT* display = nullptr;
 UTFT_Geometry* geo = nullptr;
 
-void UserPrint(const int& x, const int& y, const __FlashStringHelper *userData, const COLORS& color) {
+void UserPrint(const int& x, const int& y, const char *userData, const COLORS& color, uint8_t* font) {
     display->setColor(color);
-    display->setFont(BigFont);
+    display->setFont(font);
     display->print(userData, x, y);
+}
+inline void UserPrint(const int& x, const int& y, const __FlashStringHelper *userData, const COLORS& color, uint8_t* font) {
+    UserPrint(x, y, (const char *)userData, color, font);
 }
 
 inline void SetupLayout() {

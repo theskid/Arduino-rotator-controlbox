@@ -47,4 +47,5 @@ typedef enum {
 #endif
 
 void InitializeDisplay();
-void UserPrint(const int& x, const int& y, const __FlashStringHelper *userData, const COLORS& color);    
+void UserPrint(const int& x, const int& y, const char *userData, const COLORS& color, uint8_t* font = BigFont);
+inline void UserPrint(const int& x, const int& y, const __FlashStringHelper* userData, const COLORS& color, uint8_t* font = BigFont);

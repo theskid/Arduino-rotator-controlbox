@@ -170,30 +170,37 @@ void StartStopToggle() {
 void AutoManualToggle() {
     bSpeedModeAuto = !bSpeedModeAuto;
     DebugPrintf("SpeedControlSwitch has been pushed\nNew status of the Auto/Manual flag == %s\n", bSpeedModeAuto ? "Automatic" : "Manual");
-}
+    UserPrint(RIGHT, 12, bSpeedModeAuto ? F("  Auto ") : F("Manual "), COLORS::Yellow);
+ }
 
 void StartStopAction() {
+    static const __FlashStringHelper* msg = nullptr;
+    static const __FlashStringHelper* last = nullptr;
+    
     DebugPrint("Entering StartStopAction()\n");
 
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
-    char msg[5] = "    ";
+
     if (bMoveAntenna) {
         if (beamDir == beamSet) {
             bMoveAntenna = false;
+            msg = F("    ");
         } else if (beamDir < beamSet) {
             cw = HIGH;
-            strcat(&msg[1], "CW ");
+            msg = F(" CW ");
         } else if (beamDir > beamSet) {
             ccw = HIGH;
-            strcat(&msg[0], "CCW ");
+            msg = F("CCW ");
         }
     }
     digitalWrite(CWMotor, cw);
     digitalWrite(CCWMotor, ccw);
-    display->setColor(COLORS::Yellow);
-    display->setFont(BigFont);
-    display->print(msg, RIGHT, 25);
+    if (last != msg)
+    {
+        last = msg;
+        UserPrint(RIGHT, 25, msg, COLORS::Yellow);
+    }
     DebugPrint("Exiting StartStopAction()\n");
 }
 
@@ -204,9 +211,6 @@ void AutoManualAction() {
         rawSpdValue = analogRead(spdSetPotentiometer);
         spdValue = map(rawSpdValue, 0, POTENTIOMETER_MAX, 0, 255);
         analogWrite(PWMSpeedControl, spdValue);
-        display->setColor(COLORS::Yellow);
-        display->setFont(BigFont);
-        display->print(F("Manual "), RIGHT, 12);
     } else {
         if (bMoveAntenna) {
             int rotationValue = abs(beamSet - beamDir);
@@ -218,9 +222,6 @@ void AutoManualAction() {
             spdValue = 0;
         }
         analogWrite(PWMSpeedControl, spdValue);
-        display->setColor(COLORS::Yellow);
-        display->setFont(BigFont);
-        display->print(F("  Auto "), RIGHT, 12); 
     }
     display->setColor(COLORS::Yellow);
     display->setFont(BigFont);
@@ -356,9 +357,7 @@ inline void UserPrintAngle(int x, int y, int angle, COLORS color) {
     }
     char buff[4];                                                      // 3 digit + null string terminator (\0)
     sprintf(buff, "%03d", angle);
-    display->setColor(color);
-    display->setFont(SevenSegmentFull);
-    display->print(buff, x, y);
+    UserPrint(x, y, buff, color, SevenSegmentFull);
 }
 
 // Multisampling for 12bit readings
