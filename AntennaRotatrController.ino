@@ -146,7 +146,7 @@ void UserPrintAngle(const int& x, const int& y, int angle, const COLORS& color, 
     }
     if (bIsOver != bWasLastOver) {
         bWasLastOver = bIsOver;
-        UserPrint(overlapAlert.x, overlapAlert.y, ("OVER"), bIsOver ? COLORS::Red : COLORS::Black);
+        UserPrint(/*overlapAlert.x*/RIGHT, overlapAlert.y, ("OVER"), bIsOver ? COLORS::Red : COLORS::Black);
     }
 
     // SSF font size: 32x50 pixels

@@ -54,7 +54,7 @@ inline void InitializeDisplayHVGA480x320() {
     geo = new UTFT_Geometry(display);
 
     compass = { 285, 160, 120 };
-    speedMeter = { { 445, 58 }, { 470, 310 } };
+    speedMeter = { { 445, 58 }, { 470, compass.Y + compass.radius } };
     overlapAlert = { 345, 292 };
 
     SetupLayout();
