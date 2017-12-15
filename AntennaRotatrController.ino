@@ -279,12 +279,12 @@ void StartStopToggle() {
 void AutoManualToggle() {
     bSpeedModeAuto = !bSpeedModeAuto;
     DebugPrintf("SpeedControlSwitch has been pushed\nNew status of the Auto/Manual flag == %s\n", bSpeedModeAuto ? "Automatic" : "Manual");
-    UserPrint(RIGHT, 12, bSpeedModeAuto ? F("  Auto ") : F("Manual "), COLORS::Yellow);
+    UserPrint(RIGHT, 12, bSpeedModeAuto ? ("  Auto ") : ("Manual "), COLORS::Yellow);
  }
 
 void StartStopAction() {
-    static const __FlashStringHelper* msg = nullptr;
-    static const __FlashStringHelper* last = nullptr;
+    static const char* msg = nullptr;
+    static const char* last = nullptr;
     
     DebugPrint("Entering StartStopAction()\n");
 
@@ -294,13 +294,13 @@ void StartStopAction() {
     if (bMoveAntenna) {
         if (beamDir == beamSet) {
             bMoveAntenna = false;
-            msg = F("    ");
+            msg = ("    ");
         } else if (beamDir < beamSet) {
             cw = HIGH;
-            msg = F(" CW ");
+            msg = (" CW ");
         } else if (beamDir > beamSet) {
             ccw = HIGH;
-            msg = F("CCW ");
+            msg = ("CCW ");
         }
     }
     digitalWrite(CWMotor, cw);
@@ -402,6 +402,7 @@ void DrawInitialScreen() {
             display->drawLine(dxinner + compass.X, dyinner + compass.Y, dxOuter + compass.X, dyOuter + compass.Y);
         }
     }
+    UserPrint(RIGHT, 12, bSpeedModeAuto ? ("  Auto ") : ("Manual "), COLORS::Yellow);
 }
 
 // Multisampling for 12bit readings

@@ -27,20 +27,20 @@ inline void SetupLayout() {
     display->setFont(BigFont);
 
     // Draw the reference display
-    UserPrint(0, 12, F("ANTENNA ROTATOR"), COLORS::Orange);
-    UserPrint(40, 36, F("CONTROLLER"), COLORS::Orange);
+    UserPrint(0, 12, ("ANTENNA ROTATOR"), COLORS::Orange);
+    UserPrint(40, 36, ("CONTROLLER"), COLORS::Orange);
     display->drawLine(compass.X+(compass.radius-10), compass.Y, compass.X+(compass.radius+10), compass.Y);
     display->drawLine(compass.X-(compass.radius-10), compass.Y, compass.X-(compass.radius+10), compass.Y);
     display->drawLine(compass.X, compass.Y-(compass.radius-10), compass.X, compass.Y-(compass.radius+10));
     display->drawLine(compass.X, compass.Y+(compass.radius-10), compass.X, compass.Y+(compass.radius+10));
     display->drawCircle(compass.X, compass.Y, compass.radius);
-    UserPrint(0, 75, F("BEAM DIR"), COLORS::Red);
-    UserPrint(0, 175, F("BEAM SET"), COLORS::Red);
-    UserPrint(0, 290, F(QRZ ": " NAME), COLORS::White);
-    UserPrint((compass.X-8), (compass.Y-(compass.radius+27)), F("N"), COLORS::Red);
-    UserPrint((compass.X-8), (compass.Y+(compass.radius+15)), F("S"), COLORS::Red);
-    UserPrint((compass.X+(compass.radius+13)), (compass.Y-7), F("E"), COLORS::Red);
-    UserPrint((compass.X-(compass.radius+30)), (compass.Y-7), F("W"), COLORS::Red);
+    UserPrint(0, 75, ("BEAM DIR"), COLORS::Red);
+    UserPrint(0, 175, ("BEAM SET"), COLORS::Red);
+    UserPrint(0, 290, (QRZ ": " NAME), COLORS::White);
+    UserPrint((compass.X-8), (compass.Y-(compass.radius+27)), ("N"), COLORS::Red);
+    UserPrint((compass.X-8), (compass.Y+(compass.radius+15)), ("S"), COLORS::Red);
+    UserPrint((compass.X+(compass.radius+13)), (compass.Y-7), ("E"), COLORS::Red);
+    UserPrint((compass.X-(compass.radius+30)), (compass.Y-7), ("W"), COLORS::Red);
     display->setColor(COLORS::Green);
     display->drawRect(speedMeter.tl.x,speedMeter.tl.y,speedMeter.br.x,speedMeter.br.y);
 }
