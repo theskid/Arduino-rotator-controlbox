@@ -1,5 +1,11 @@
-// Antenna Rotator Controlbox
-// Version 6 Rev. 2
+// Ham Antenna Rotator Device
+// Version 1.00 (Rev. 2)
+// 
+// A SkyDubh production (http://www.skydubh.com)
+// 
+// Crew
+// Diego Cioschi: concept and first code writing
+// Bruno Passeri: code optimization and refactoring
 //
 // Dependencies:
 // Font SevenSegmentFull.c (http://www.rinkydinkelectronics.com/r_fonts.php)
@@ -61,6 +67,7 @@ const BUTTON_MAP ButtonsMap[] = {
 
 extern AREA speedMeter;                                                 // Speed meter area
 extern COMPASS compass;                                                 // Compass basic coordinates
+extern POINT overlapAlert;                                              // Overlap alert coordinates
 extern UTFT* display;                                                   // Main display
 extern UTFT_Geometry* geo;                                              // Geometric helper functions
 
@@ -119,23 +126,31 @@ void loop() {
 void UserPrintAngle(const int& x, const int& y, int angle, const COLORS& color, const BHTYPE& type) {
     static COLORS lastla[2] = { (COLORS)0 };                            // Prev. colors
     static COLORS lastra[2] = { (COLORS)0 };
+    static boolean bWasLastOver = false;
     COLORS la = COLORS::Black;                                          // Left arrow
     COLORS ra = COLORS::Black;                                          // Right arrow
+    boolean bIsOver = false;
 
     // Overlaps
     if (0 > angle)
     {
         angle += 360;
         la = COLORS::Red;
+        bIsOver = true;
     }
     if (359 < angle)
     {
         angle -= 360;
         ra = COLORS::Red;
+        bIsOver = true;
+    }
+    if (bIsOver != bWasLastOver) {
+        bWasLastOver = bIsOver;
+        UserPrint(overlapAlert.x, overlapAlert.y, ("OVER"), bIsOver ? COLORS::Red : COLORS::Black);
     }
 
     // SSF font size: 32x50 pixels
-    #define MIDARROW ((50 - OVERLAP_SIZE) >> 1)
+    #define MIDARROW (50 >> 1)
     #define LOWY (MIDARROW + (OVERLAP_SIZE >> 1))
     #define HIGHY (MIDARROW - (OVERLAP_SIZE >> 1))
     #define RIGHTMOST (10 + OVERLAP_SIZE + (32 * 3))

@@ -7,6 +7,7 @@
 
 AREA speedMeter;
 COMPASS compass;
+POINT overlapAlert;
 
 UTFT* display = nullptr;
 UTFT_Geometry* geo = nullptr;
@@ -54,7 +55,7 @@ inline void InitializeDisplayHVGA480x320() {
 
     compass = { 285, 160, 120 };
     speedMeter = { { 445, 58 }, { 470, 310 } };
-    //overWarnSig = { { 320, 290 }, { 434, 310 } };
+    overlapAlert = { 345, 292 };
 
     SetupLayout();
 }
