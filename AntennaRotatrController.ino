@@ -144,9 +144,11 @@ void UserPrintAngle(const int& x, const int& y, int angle, const COLORS& color, 
         ra = COLORS::Red;
         bIsOver = true;
     }
-    if ((BHTYPE::BeamDIR == type) && (bIsOver != bWasLastOver)) {
-        bWasLastOver = bIsOver;
-        UserPrint(/*overlapAlert.x*/RIGHT, overlapAlert.y, ("OVER"), bIsOver ? COLORS::Red : COLORS::Black);
+    if (BHTYPE::BeamDIR == type)
+        //if (bIsOver != bWasLastOver)) {
+        //    bWasLastOver = bIsOver;
+            UserPrint(/*overlapAlert.x*/RIGHT, overlapAlert.y, ("OVER"), bIsOver ? COLORS::Red : COLORS::Black);
+        //}
     }
 
     // SSF font size: 32x50 pixels
