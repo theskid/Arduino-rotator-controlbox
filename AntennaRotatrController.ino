@@ -144,7 +144,7 @@ void UserPrintAngle(const int& x, const int& y, int angle, const COLORS& color, 
         ra = COLORS::Red;
         bIsOver = true;
     }
-    if (bIsOver != bWasLastOver) {
+    if ((BHTYPE::BeamDIR == type) && (bIsOver != bWasLastOver)) {
         bWasLastOver = bIsOver;
         UserPrint(/*overlapAlert.x*/RIGHT, overlapAlert.y, ("OVER"), bIsOver ? COLORS::Red : COLORS::Black);
     }
