@@ -103,20 +103,20 @@ void setup() {
 
 // Main loop
 void loop() {
-    DebugPrint("---------------------------- Cycling loop() START ----------------------------\n");
-    DebugPrintf("RAW value of rotator potentiometer == %d\n", AnalogRead12Bits(rotatorSensor));
-    DebugPrintf("Value of the start/stop flag == %s\n", bMoveAntenna ? "Start" : "Stop");
-    DebugPrintf("Value of the Auto/Manual flag == %s\n", bSpeedModeAuto ? "Automatic" : "Manual");
-    DebugPrintf("Value of the User Action flag == %s\n", bChoosingNewAngle ? "Setting" : "Confirmed");
-    DebugPrintf("Value of the BEAM direction == %d\n", beamDir);
-    DebugPrintf("Value of the BEAM setting == %d\n", beamSet);
-    DebugPrintf("Value of the throttle setting == %d\n", spdValue);
+    DebugPrint("---------------------------- Cycling loop() START ----------------------------\r\n");
+    DebugPrintf("RAWR value of rotator potentiometer == %d\r\n", AnalogRead12Bits(rotatorSensor));
+    DebugPrintf("Value of the start/stop flag == %s\r\n", bMoveAntenna ? "Start" : "Stop");
+    DebugPrintf("Value of the Auto/Manual flag == %s\r\n", bSpeedModeAuto ? "Automatic" : "Manual");
+    DebugPrintf("Value of the User Action flag == %s\r\n", bChoosingNewAngle ? "Setting" : "Confirmed");
+    DebugPrintf("Value of the BEAM direction == %d\r\n", beamDir);
+    DebugPrintf("Value of the BEAM setting == %d\r\n", beamSet);
+    DebugPrintf("Value of the throttle setting == %d\r\n", spdValue);
     CheckButtons();
     StartStopAction();
     AutoManualAction();
     BeamSetting();
     BeamDirControl();
-    DebugPrint("----------------------------- Cycling loop() END -----------------------------\n");
+    DebugPrint("----------------------------- Cycling loop() END -----------------------------\r\n");
     #ifdef DEBUG
         delay(1000);
     #endif
@@ -283,19 +283,19 @@ inline void BeamSetting(const bool& forceUpdate) {
 // Toggles the Set/Confirm state [CB]
 void UserSetConfirmToggle() {
     bChoosingNewAngle = !bChoosingNewAngle;
-    DebugPrintf("UserActionSwitch has been pushed\nNew status of User Action flag == %s\n", bChoosingNewAngle ? "Setting" : "Confirmed");
+    DebugPrintf("UserActionSwitch has been pushed\nNew status of User Action flag == %s\r\n", bChoosingNewAngle ? "Setting" : "Confirmed");
 }
 
 // Toggles the Start/Stop state [CB]
 void StartStopToggle() {
     bMoveAntenna = !bMoveAntenna;
-    DebugPrintf("StartStopSwitch has been pushed\nNew status of the start/stop flag == %s\n", bMoveAntenna ? "Start" : "Stop");
+    DebugPrintf("StartStopSwitch has been pushed\nNew status of the start/stop flag == %s\r\n", bMoveAntenna ? "Start" : "Stop");
 }
 
 // Toggles the Auto/Manual state [CB]
 void AutoManualToggle() {
     bSpeedModeAuto = !bSpeedModeAuto;
-    DebugPrintf("SpeedControlSwitch has been pushed\nNew status of the Auto/Manual flag == %s\n", bSpeedModeAuto ? "Automatic" : "Manual");
+    DebugPrintf("SpeedControlSwitch has been pushed\nNew status of the Auto/Manual flag == %s\r\n", bSpeedModeAuto ? "Automatic" : "Manual");
     UserPrint(RIGHT, 12, bSpeedModeAuto ? ("  Auto ") : ("Manual "), COLORS::Yellow);
  }
 
@@ -303,7 +303,7 @@ void StartStopAction() {
     static const char* msg = nullptr;
     static const char* last = nullptr;
     
-    DebugPrint("Entering StartStopAction()\n");
+    DebugPrint("Entering StartStopAction()\r\n");
 
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
@@ -327,7 +327,7 @@ void StartStopAction() {
         last = msg;
         UserPrint(RIGHT, 25, msg, COLORS::Yellow);
     }
-    DebugPrint("Exiting StartStopAction()\n");
+    DebugPrint("Exiting StartStopAction()\r\n");
 }
 
 // Draw the speed with a s-meter
@@ -346,7 +346,7 @@ inline void SpeedMeter(const int& speed) {
 }
 
 void AutoManualAction() {
-    DebugPrint("Entering AutoManualAction()\n");
+    DebugPrint("Entering AutoManualAction()\r\n");
     int rawSpdValue;
     if (!bSpeedModeAuto) {
         rawSpdValue = analogRead(spdSetPotentiometer);
@@ -368,7 +368,7 @@ void AutoManualAction() {
     display->setFont(BigFont);
     display->printNumI(spdValue, RIGHT, 38, 3, ' ');
     SpeedMeter(spdValue);
-    DebugPrint("Exiting AutoManualAction()\n");
+    DebugPrint("Exiting AutoManualAction()\r\n");
 }
 
 // Checks buttons status and fires corresponding events

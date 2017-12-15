@@ -48,7 +48,7 @@ inline void SetupLayout() {
 
 #ifdef TFT_HVGA_480x320
 // Initializes the TFTLCD 3.2 HVGA 480x320 display shield
-inline void InitializeDisplayHVGA480x320() {
+void InitializeDisplayHVGA480x320() {
     // Create the display objects
     display = new UTFT(ILI9481, 38, 39, 40, 41);
     geo = new UTFT_Geometry(display);
