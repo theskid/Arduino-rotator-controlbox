@@ -424,11 +424,21 @@ void DrawInitialScreen() {
 
 // Multisampling for 12bit readings
 inline int AnalogRead12Bits(uint8_t pin) {
-    int Result = 0;
-    analogRead(pin);                                                    // Switch ADC
-    for (int i = 0; i < 16; i++) {                                      // Read 16 times
-        Result += analogRead(pin);                                      // Sum results
+    static int buffer[16] = { 0 };
+    static int track = 0;
+    static boolean bInitialized = false;
+    if (!bInitialized) {
+        bInitialized = true;
+        for (int i = 0; i < 15; i++)
+            buffer[i] = analogRead(pin);
+        track = 15;
     }
-    Result >>= 2;                                                       // Divide by 4 for 12 bit value
-    return Result;
+    buffer[track++] = analogRead(pin);
+    if (15 < track)
+        track -= 16;
+
+    int Result = buffer[0];
+    for (int i = 1; i < 16; i++)                                        // Read 16 times
+        Result += buffer[i];                                            // Sum results
+    return (Result >>= 2);                                              // Divide by 4 for 12 bit value;
 }
