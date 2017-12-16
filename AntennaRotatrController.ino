@@ -366,7 +366,7 @@ void AutoManualAction() {
     }
     display->setColor(COLORS::Yellow);
     display->setFont(BigFont);
-    display->printNumI(spdValue, RIGHT, 38, 3, ' ');
+    display->printNumI((map(spdValue,0,255,0,100)), RIGHT, 38, 3, ' ');
     SpeedMeter(spdValue);
     DebugPrint("Exiting AutoManualAction()\r\n");
 }
