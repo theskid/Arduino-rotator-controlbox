@@ -42,8 +42,10 @@ typedef enum {
 #define ENUM_COLORS
 #endif
 
-#ifdef TFT_HVGA_480x320
+#if defined(TFT_HVGA_480x320)
 #define InitializeDisplay InitializeDisplayHVGA480x320
+#elif defined(ADAFRUIT_ILI9341) || defined(PROTEUS_VSM)
+#define InitializeDisplay InitializeDisplayAdafruitILI9341_S5
 #endif
 
 void InitializeDisplay();

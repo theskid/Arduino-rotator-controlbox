@@ -104,7 +104,7 @@ void setup() {
 // Main loop
 void loop() {
     DebugPrint("---------------------------- Cycling loop() START ----------------------------\r\n");
-    DebugPrintf("RAWR value of rotator potentiometer == %d\r\n", AnalogRead12Bits(rotatorSensor));
+    DebugPrintf("RAW value of rotator potentiometer == %d\r\n", AnalogRead12Bits(rotatorSensor));
     DebugPrintf("Value of the start/stop flag == %s\r\n", bMoveAntenna ? "Start" : "Stop");
     DebugPrintf("Value of the Auto/Manual flag == %s\r\n", bSpeedModeAuto ? "Automatic" : "Manual");
     DebugPrintf("Value of the User Action flag == %s\r\n", bChoosingNewAngle ? "Setting" : "Confirmed");

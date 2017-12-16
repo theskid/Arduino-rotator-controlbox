@@ -22,6 +22,9 @@ inline void UserPrint(const int& x, const int& y, const __FlashStringHelper *use
 }
 
 inline void SetupLayout() {
+    // Initialize the geometry helper
+    geo = new UTFT_Geometry(display);
+
     // Initialize the screen
     display->InitLCD(LANDSCAPE);
     display->clrScr();
@@ -46,13 +49,42 @@ inline void SetupLayout() {
     display->drawRect(speedMeter.tl.x,speedMeter.tl.y,speedMeter.br.x,speedMeter.br.y);
 }
 
-#ifdef TFT_HVGA_480x320
-// Initializes the TFTLCD 3.2 HVGA 480x320 display shield
-void InitializeDisplayHVGA480x320() {
-    // Create the display objects
-    display = new UTFT(ILI9481, 38, 39, 40, 41);
-    geo = new UTFT_Geometry(display);
+/*
+    *** 8 & 16 bit ***
+    Model, RS, WR, CS, RST[, ALE]
+    RS: Register select
+    WR: Write pin
+    CS: Chip select
+    RST: Reset
+    ALE: (Optional) 16bit shields, Latch signal pin
 
+    *** SPI ***
+    Model, SDA, SCL, CS, RST[, RS]
+    SDA: Serial data
+    SCL: Serial clock
+    CS: Chip select
+    RST: Reset
+    RS: (Optional) 5pin serial modules, Register select
+*/
+
+// TFTLCD 3.2 HVGA 480x320 display shield
+#if defined(TFT_HVGA_480x320)
+void InitializeDisplayHVGA480x320() {
+    display = new UTFT(ILI9481, 38, 39, 40, 41);
+
+    compass = { 285, 160, 120 };
+    speedMeter = { { 445, 58 }, { 470, compass.Y + compass.radius } };
+    overlapAlert = { 345, 292 };
+
+    SetupLayout();
+}
+#endif
+
+// Real or emulated Adafruit ILI9341 SPI 5 pins
+#if defined(ADAFRUIT_ILI9341_S5) || defined(PROTEUS_VSM)
+void InitializeDisplayAdafruitILI9341_S5() {
+    // MOSI, SCK, <IOx CS Pin | Ada CS>, NOTINUSE, <IOx WR/D/C Pin | Ada DC>
+    display = new UTFT(ILI9341_S5P, MOSI, SCK, 10, NOTINUSE, 9);
     compass = { 285, 160, 120 };
     speedMeter = { { 445, 58 }, { 470, compass.Y + compass.radius } };
     overlapAlert = { 345, 292 };
