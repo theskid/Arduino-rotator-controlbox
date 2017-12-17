@@ -68,8 +68,8 @@ const BUTTON_MAP ButtonsMap[] = {
 extern AREA speedMeter;                                                 // Speed meter area
 extern COMPASS compass;                                                 // Compass basic coordinates
 extern POINT overlapAlert;                                              // Overlap alert coordinates
-extern UTFT* display;                                                   // Main display
-extern UTFT_Geometry* geo;                                              // Geometric helper functions
+extern UTFT display;                                                   // Main display
+extern UTFT_Geometry geo;                                              // Geometric helper functions
 
 /*******************************************************************
 **** THERE BE DRAGONS **********************************************
@@ -159,14 +159,14 @@ void UserPrintAngle(const int& x, const int& y, int angle, const COLORS& color, 
     if (lastla[type] != la)
     {
         lastla[type] = la;
-        display->setColor(la);
-        geo->fillTriangle(x, y + MIDARROW, x + OVERLAP_SIZE, y + HIGHY, x + OVERLAP_SIZE, y + LOWY);
+        display.setColor(la);
+        geo.fillTriangle(x, y + MIDARROW, x + OVERLAP_SIZE, y + HIGHY, x + OVERLAP_SIZE, y + LOWY);
     }
     if (lastra[type] != ra)
     {
         lastra[type] = ra;
-        display->setColor(ra);
-        geo->fillTriangle(x + RIGHTMOST + OVERLAP_SIZE, y + MIDARROW, x + RIGHTMOST, y + LOWY, x + RIGHTMOST, y + HIGHY);
+        display.setColor(ra);
+        geo.fillTriangle(x + RIGHTMOST + OVERLAP_SIZE, y + MIDARROW, x + RIGHTMOST, y + LOWY, x + RIGHTMOST, y + HIGHY);
     }
     #undef RIGHTMOST
     #undef HIGHY
@@ -175,7 +175,7 @@ void UserPrintAngle(const int& x, const int& y, int angle, const COLORS& color, 
 
     char buff[4];                                                       // 3 digits + '\0'
     sprintf(buff, "%03d", angle);
-    UserPrint(x + 5 + OVERLAP_SIZE, y, buff, color, SevenSegmentFull);
+    UserPrint(x + 5 + OVERLAP_SIZE, y, buff, color, UI_FONT::Angles);
 }
 
 // Draw the beam
@@ -218,26 +218,26 @@ void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
         int color = (0 == i ? COLORS::Black : (BHTYPE::BeamDIR == type ? colorDir : colorSet));
         switch (type) {
             case BHTYPE::BeamDIR: {
-                display->setColor(color);
-                geo->fillTriangle(x2[a], y2[a], x3[a], y3[a], x4[a], y4[a]);
-                geo->fillTriangle(x3[a], y3[a], compass.X, compass.Y, x4[a], y4[a]);
+                display.setColor(color);
+                geo.fillTriangle(x2[a], y2[a], x3[a], y3[a], x4[a], y4[a]);
+                geo.fillTriangle(x3[a], y3[a], compass.X, compass.Y, x4[a], y4[a]);
                 break;
             }
             case BHTYPE::BeamSET: {
-                display->setColor(color);
-                display->drawLine(x3[a], y3[a], compass.X, compass.Y);
-                display->drawLine(compass.X, compass.Y, x4[a], y4[a]);
-                display->drawLine(x4[a], y4[a], x2[a], y2[a]);
-                display->drawLine(x2[a], y2[a], x3[a], y3[a]);
-                display->drawLine(compass.X, compass.Y, x2[a], y2[a]);
+                display.setColor(color);
+                display.drawLine(x3[a], y3[a], compass.X, compass.Y);
+                display.drawLine(compass.X, compass.Y, x4[a], y4[a]);
+                display.drawLine(x4[a], y4[a], x2[a], y2[a]);
+                display.drawLine(x2[a], y2[a], x3[a], y3[a]);
+                display.drawLine(compass.X, compass.Y, x2[a], y2[a]);
                 break;
             }
         }
     }
 
     // Always redraw the pivot
-    display->setColor(colorDir);
-    display->fillCircle(compass.X, compass.Y, 9);
+    display.setColor(colorDir);
+    display.fillCircle(compass.X, compass.Y, 9);
 }
 
 // Update the azimuthal beam direction
@@ -339,10 +339,10 @@ inline void SpeedMeter(const int& speed) {
     int maxY = speedMeter.tl.y + PADDING;
     #undef PADDING
     int mappedSpeed = map(speed, 0, 255, minY, maxY);
-    display->setColor(COLORS::Black);
-    display->fillRect(maxX, maxY, minX, mappedSpeed);
-    display->setColor(COLORS::Red);
-    display->fillRect(maxX, mappedSpeed, minX, minY);
+    display.setColor(COLORS::Black);
+    display.fillRect(maxX, maxY, minX, mappedSpeed);
+    display.setColor(COLORS::Red);
+    display.fillRect(maxX, mappedSpeed, minX, minY);
 }
 
 void AutoManualAction() {
@@ -364,9 +364,9 @@ void AutoManualAction() {
         }
         analogWrite(PWMSpeedControl, spdValue);
     }
-    display->setColor(COLORS::Yellow);
-    display->setFont(BigFont);
-    display->printNumI((map(spdValue,0,255,0,100)), RIGHT, 38, 3, ' ');
+    char buff[4];                                                       // 3 digits + '\0'
+    sprintf(buff, "%3d", map(spdValue,0,255,0,100));
+    UserPrint(RIGHT, 38, buff, COLORS::Yellow);
     SpeedMeter(spdValue);
     DebugPrint("Exiting AutoManualAction()\r\n");
 }
@@ -404,19 +404,19 @@ void ConfigureIOPins() {
 // Draw the screen overlay
 void DrawInitialScreen() {
     int dxOuter, dyOuter, dxinner, dyinner;
-    display->setColor(0, 255, 0);
-    display->drawCircle(compass.X, compass.Y, compass.radius);
+    display.setColor(0, 255, 0);
+    display.drawCircle(compass.X, compass.Y, compass.radius);
     for (float i = 0; i < 360; i += 22.5) {
-        display->setColor(255, 128, 0);
+        display.setColor(255, 128, 0);
         dxOuter = compass.radius * cos((i - 90) * PI_OVER_180);
         dyOuter = compass.radius * sin((i - 90) * PI_OVER_180);
         dxinner = dxOuter * 0.97;
         dyinner = dyOuter * 0.97;
-        display->drawLine(dxOuter + compass.X, dyOuter + compass.Y, dxinner + compass.X, dyinner + compass.Y);
+        display.drawLine(dxOuter + compass.X, dyOuter + compass.Y, dxinner + compass.X, dyinner + compass.Y);
         if (0 == (i - floor(i))) {
             dxinner = dxOuter * 0.92;
             dyinner = dyOuter * 0.92;
-            display->drawLine(dxinner + compass.X, dyinner + compass.Y, dxOuter + compass.X, dyOuter + compass.Y);
+            display.drawLine(dxinner + compass.X, dyinner + compass.Y, dxOuter + compass.X, dyOuter + compass.Y);
         }
     }
     UserPrint(RIGHT, 12, bSpeedModeAuto ? ("  Auto ") : ("Manual "), COLORS::Yellow);

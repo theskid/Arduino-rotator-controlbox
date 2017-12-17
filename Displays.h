@@ -6,11 +6,6 @@
 #include <UTFT.h>
 #include <UTFT_Geometry.h>
 
-// Font declarations
-extern uint8_t BigFont[];
-extern uint8_t SmallFont[];
-extern uint8_t SevenSegmentFull[];
-
 typedef struct {
     int x;
     int y;
@@ -27,6 +22,11 @@ typedef struct {
     int radius;
 } COMPASS;
 
+typedef enum {
+    Main = 1,
+    Angles = 2
+} UI_FONT;
+
 #ifndef ENUM_COLORS
 typedef enum {
     Black   = 0x0000,
@@ -42,12 +42,6 @@ typedef enum {
 #define ENUM_COLORS
 #endif
 
-#if defined(TFT_HVGA_480x320)
-#define InitializeDisplay InitializeDisplayHVGA480x320
-#elif defined(ADAFRUIT_ILI9341) || defined(PROTEUS_VSM)
-#define InitializeDisplay InitializeDisplayAdafruitILI9341_S5
-#endif
-
 void InitializeDisplay();
-void UserPrint(const int& x, const int& y, const char *userData, const COLORS& color, uint8_t* font = BigFont);
-inline void UserPrint(const int& x, const int& y, const __FlashStringHelper* userData, const COLORS& color, uint8_t* font = BigFont);
+void UserPrint(const int& x, const int& y, const char *userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main);
+inline void UserPrint(const int& x, const int& y, const __FlashStringHelper* userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main);
