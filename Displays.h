@@ -27,7 +27,6 @@ typedef enum {
     Angles = 2
 } UI_FONT;
 
-#ifndef ENUM_COLORS
 typedef enum {
     Black   = 0x0000,
     Blue    = 0x001F,
@@ -37,11 +36,29 @@ typedef enum {
     Magenta = 0xF81F,
     Yellow  = 0xFFE0,
     White   = 0xFFFF,
-    Orange  = 0xF400
+    Orange  = 0xF400,
 } COLORS;                                                               // UTFT Display module color constants
-#define ENUM_COLORS
-#endif
+
+typedef struct {
+    BHTYPE type;
+    const char* angle;
+    COLORS color;
+} HUD_BEAM;
+
+typedef enum {
+    RotationDirection = 1,
+    CurrentSpeed = 2,
+    AutoManual = 3,
+    OverlapAlert = 4,
+    SpeedMeter = 5,
+    BeamAngle = 6,
+    BeamLeftArrow = 7,
+    BeamRightArrow = 8,
+} HUD;
+
+#define PI_OVER_180 0.01745329251994329576923690768489                  // Pi/180. Trigonometry is fun!
 
 void InitializeDisplay();
+void DrawHudElement(const void* data, const HUD& hud);
 void UserPrint(const int& x, const int& y, const char *userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main);
-inline void UserPrint(const int& x, const int& y, const __FlashStringHelper* userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main);
+//inline void UserPrint(const int& x, const int& y, const __FlashStringHelper* userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main);

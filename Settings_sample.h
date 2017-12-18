@@ -30,4 +30,7 @@
 */
 
 // (Un)comment to enable/disable debug mode.
-//#define DEBUG
+//#define DEBUG                             /* Minimal debug informations and wait-on-serial */
+//#define DEBUG_VERBOSE                     /* Basic debug informations */
+//#define DEBUG_ULTRAVERBOSE                /* Open the floods */
+//#define DEBUG_SLEEP                       /* Wait 1 second after every loop */
