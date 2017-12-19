@@ -38,6 +38,7 @@ const uint8_t rotatorSensor = POTENTIOMETER_ROTOR_SENSOR;
 
 int beamDir = 0;                                                        // Actual beam direction
 int beamSet = 0;                                                        // Beam directione to set
+int beamSetRoute = 0;                                                   // Beam setting bearing the shortest route
 int spdValue = 0;                                                       // Rotation speed
 
 boolean bMoveAntenna = false;                                           // Start Stop flag
@@ -88,7 +89,7 @@ void UserPrintAngle(int angle, const COLORS& color, const BHTYPE& type) {
     COLORS ra = COLORS::Black;                                          // Right arrow
     boolean bIsOver = false;
     HUD_BEAM hb = { type, nullptr, (COLORS)0 };
-    
+
     // Overlaps
     if (0 > angle)
     {
@@ -140,7 +141,7 @@ inline void BeamDirection() {
         DebugPrint("Entering BeamDirection()\r\n");
     #endif
     beamDir = ReadBeamDir();
-    UserPrintAngle(beamDir, beamSet!=beamDir?Yellow:Green, BeamDIR);    // We defer the anti-flicker to UPA
+    UserPrintAngle(beamDir, beamSetRoute != beamDir ? COLORS::Yellow : COLORS::Green, BeamDIR);
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Exiting BeamDirection()\r\n");
     #endif
@@ -155,16 +156,17 @@ inline void BeamSetting() {
     if ((!bPreSetup) && bChoosingNewAngle)
         color = COLORS::Yellow;
     if (bPreSetup || bChoosingNewAngle)
-    {
-        // Update the angle and define the shortest route to it
-        int r = ReadBeamSet();
-        if (OVERLAP_TOLERANCE >= (360 - r))
-            r = abs(beamDir - (r - 360)) < abs(beamDir - r) ? r - 360 : r;
-        if (OVERLAP_TOLERANCE >= (r + 1))
-            r = abs(beamDir - (r + 360)) < abs(beamDir - r) ? r + 360 : r;
-        beamSet = r;
-    }
-    UserPrintAngle(beamSet, color, BeamSET);                            // We defer the anti-flicker to UPA
+        beamSet = ReadBeamSet();
+
+    // Find the shortest path from beamDir
+    int angle = beamSet;
+    if (OVERLAP_TOLERANCE >= (360 - angle))
+        angle = abs(beamDir - (angle - 360)) < abs(beamDir - angle) ? angle - 360 : angle;
+    if (OVERLAP_TOLERANCE >= (angle + 1))
+        angle = abs(beamDir - (angle + 360)) < abs(beamDir - angle) ? angle + 360 : angle;
+    beamSetRoute = angle;
+
+    UserPrintAngle(beamSetRoute, color, BeamSET);
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Exiting BeamSetting()\r\n");
     #endif
@@ -213,13 +215,13 @@ inline void SpinRotor() {
     uint8_t cw = LOW;
     uint8_t ccw = LOW;
 
-    if ((!bMoveAntenna) || (beamDir == beamSet)) {
+    if ((!bMoveAntenna) || (beamDir == beamSetRoute)) {
         bMoveAntenna = false;
         msg = ("   ");
-    } else if (bMoveAntenna && (beamDir < beamSet)) {
+    } else if (bMoveAntenna && (beamDir < beamSetRoute)) {
         cw = HIGH;
         msg = (" CW ");
-    } else if (bMoveAntenna && (beamDir > beamSet)) {
+    } else if (bMoveAntenna && (beamDir > beamSetRoute)) {
         ccw = HIGH;
         msg = ("CCW");
     }
