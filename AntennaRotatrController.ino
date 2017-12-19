@@ -39,6 +39,7 @@ const uint8_t rotatorSensor = POTENTIOMETER_ROTOR_SENSOR;
 #define MULTIPLE_SAMPLING 4                                             // How many N/16 samples get acquired per 12bit read cycle
 
 int beamDir = 0;                                                        // Actual beam direction
+int beamDirStart = 0;                                                   // The initial bearing before the rotation begins
 int beamSet = 0;                                                        // Beam directione to set
 int beamSetRoute = 0;                                                   // Beam setting bearing the shortest route
 int spdValue = 0;                                                       // Rotation speed
@@ -205,6 +206,8 @@ void StartStopToggle() {
     if (bChoosingNewAngle && !bMoveAntenna)                             // Auto-confirm upon starting the engine
         UserSetConfirmToggle();
     bMoveAntenna = !bMoveAntenna;
+    if (bMoveAntenna)
+        beamDirStart = beamDir;
     #ifdef DEBUG_VERBOSE
         DebugPrintf("StartStopSwitch has been pushed, now: %s\r\n", bMoveAntenna ? "Start" : "Stop");
     #endif
@@ -287,11 +290,14 @@ inline void SetRotorSpeed() {
         #endif
     } else {
         if (bMoveAntenna) {
-            int rotationValue = abs(beamSet - beamDir);
-            if (10 < rotationValue)
-                spdValue = 255;
-            else
+            int rotationValue = abs(beamSet - beamDir),
+                rotationDone = abs(beamDirStart - beamDir);
+            if (10 >= rotationValue)
                 spdValue = map(rotationValue, 0, 10, 20, 220);
+            else if (10 >= rotationDone)
+                spdValue = map(rotationDone, 0, 10, 20, 220);
+            else
+                spdValue = 255;
         } else {
             spdValue = 0;
         }
@@ -410,9 +416,9 @@ void loop() {
             bUpdateScreen = true;
     #endif
 
-    CheckButtons();
     BeamSetting();
     BeamDirection();
+    CheckButtons();
     SetRotorSpeed();
     SpinRotor();
     #ifdef DEBUG_ULTRAVERBOSE
