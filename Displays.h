@@ -56,9 +56,10 @@ typedef enum {
     BeamRightArrow = 8,
 } HUD;
 
-#define PI_OVER_180 0.01745329251994329576923690768489                  // Pi/180. Trigonometry is fun!
+#define NOREDRAW 0x7FFE                                                 // Initial state of lastBeam/lastSet
 
 void InitializeDisplay();
 void DrawHudElement(const void* data, const HUD& hud);
+void DrawBeamArrows(const int* angles[4]);
 void UserPrint(const int& x, const int& y, const char *userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main);
 //inline void UserPrint(const int& x, const int& y, const __FlashStringHelper* userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main);

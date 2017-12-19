@@ -9,8 +9,8 @@ typedef struct {
 } BUTTON_MAP;                                                           // Button callbacks map
 
 typedef enum {
-    BeamDIR = 0,
-    BeamSET = 1,
+    BeamDIR = 1,
+    BeamSET = 0,
 } BHTYPE;                                                               // Arrow beam for current and planned directions
 
 typedef enum {

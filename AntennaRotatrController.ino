@@ -128,7 +128,7 @@ void UserPrintAngle(int angle, const COLORS& color, const BHTYPE& type) {
     {
         lastAngle[type] = angle;
         lastac[type] = color;
-        char buff[4];                                                       // 3 digits + '\0'
+        char buff[4];                                                   // 3 digits + '\0'
         sprintf(buff, "%03d", angle);
         hb.angle = buff;
         hb.color = color;
@@ -136,87 +136,13 @@ void UserPrintAngle(int angle, const COLORS& color, const BHTYPE& type) {
     }
 }
 
-// Draw the beam
-void DrawBeamHead(int oldAngle, int angle, const BHTYPE& type) {
-    static boolean bInitialized = false;
-    static int x2[360], y2[360], x3[360], y3[360], x4[360], y4[360];
-    int h = (BHTYPE::BeamDIR == type ? 12 : 10);
-    int w = 10;
-
-    // For faster drawing and reduced computation, we pre-build a lookup tables for the heavy lifting computation
-    if (!bInitialized) {
-        bInitialized = true;
-        int x2a, y2a, dx, dy;
-        for (int a = 0; a < 360; a++) {
-            x2[a] = (compass.radius * .825 * cos((a - 90) * PI_OVER_180)) + compass.X;
-            y2[a] = (compass.radius * .825 * sin((a - 90) * PI_OVER_180)) + compass.Y;
-            dx = compass.X + (w / 6) * (x2[a] - compass.X) / h;
-            dy = compass.Y + (w / 6) * (y2[a] - compass.Y) / h;
-            x2a = compass.X - dx;
-            y2a = dy - compass.Y;
-            x3[a] = y2a + dx;
-            y3[a] = x2a + dy;
-            x4[a] = dx - y2a;
-            y4[a] = dy - x2a;
-        }
-    }
-
-    // Ignore overlaps
-    if (0 > oldAngle)   oldAngle += 360;
-    if (359 < oldAngle) oldAngle -= 360;
-    if (0 > angle)         angle += 360;
-    if (359 < angle)       angle -= 360;
-
-    #define colorDir COLORS::Red
-    #define colorSet COLORS::Green
-
-    // First pass erases the old one, second pass draws at the new angle
-    for (int i = 0; i < 2; i++) {
-        int a = (0 == i ? oldAngle : angle);
-        int color = (0 == i ? COLORS::Black : (BHTYPE::BeamDIR == type ? colorDir : colorSet));
-        switch (type) {
-            case BHTYPE::BeamDIR: {
-                display.setColor(color);
-                geo.fillTriangle(x2[a], y2[a], x3[a], y3[a], x4[a], y4[a]);
-                geo.fillTriangle(x3[a], y3[a], compass.X, compass.Y, x4[a], y4[a]);
-                break;
-            }
-            case BHTYPE::BeamSET: {
-                display.setColor(color);
-                display.drawLine(x3[a], y3[a], compass.X, compass.Y);
-                display.drawLine(compass.X, compass.Y, x4[a], y4[a]);
-                display.drawLine(x4[a], y4[a], x2[a], y2[a]);
-                display.drawLine(x2[a], y2[a], x3[a], y3[a]);
-                display.drawLine(compass.X, compass.Y, x2[a], y2[a]);
-                break;
-            }
-        }
-    }
-
-    // Always redraw the pivot
-    display.setColor(colorDir);
-    display.fillCircle(compass.X, compass.Y, 9);
-}
-
 // Update the azimuthal beam direction
 inline void BeamDirControl() {
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Entering BeamDirControl()\r\n");
     #endif
-    static int lastBDReading = 0;
-    COLORS color = COLORS::Green;
-    if (bPreSetup || (beamSet != beamDir)) {
-        if (beamSet != beamDir)
-            color = COLORS::Yellow;
-        // Replace the old Azimut direction beam with the current direction
-        int r = ReadBeamDir();
-        if (bPreSetup || (r != lastBDReading)) {
-            beamDir = r;
-            DrawBeamHead(lastBDReading, beamDir, BeamDIR);
-            lastBDReading = r;
-        }
-    }
-    UserPrintAngle(beamDir, color, BeamDIR);
+    beamDir = ReadBeamDir();
+    UserPrintAngle(beamDir, beamSet!=beamDir?Yellow:Green, BeamDIR);    // We defer the anti-flicker to UPA
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Exiting BeamDirControl()\r\n");
     #endif
@@ -227,24 +153,20 @@ inline void BeamSetting() {
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Entering BeamSetting()\r\n");
     #endif
-    static int lastBSReading = 0;
     COLORS color = COLORS::Green;
-    if (bPreSetup || (bChoosingNewAngle)) {
-        if (!bPreSetup)
-            color = COLORS::Yellow;
+    if ((!bPreSetup) && bChoosingNewAngle)
+        color = COLORS::Yellow;
+    if (bPreSetup || bChoosingNewAngle)
+    {
         // Update the angle and define the shortest route to it
         int r = ReadBeamSet();
         if (OVERLAP_TOLERANCE >= (360 - r))
             r = abs(beamDir - (r - 360)) < abs(beamDir - r) ? r - 360 : r;
         if (OVERLAP_TOLERANCE >= (r + 1))
             r = abs(beamDir - (r + 360)) < abs(beamDir - r) ? r + 360 : r;
-        if (bPreSetup || (r != lastBSReading)) {
-            beamSet = r;
-            DrawBeamHead(lastBSReading, beamSet, BeamSET);
-            lastBSReading = r;
-        }
+        beamSet = r;
     }
-    UserPrintAngle(beamSet, color, BeamSET);
+    UserPrintAngle(beamSet, color, BeamSET);                            // We defer the anti-flicker to UPA
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Exiting BeamSetting()\r\n");
     #endif
@@ -252,6 +174,8 @@ inline void BeamSetting() {
 
 // Toggles the Set/Confirm state [CB]
 void UserSetConfirmToggle() {
+    if (bMoveAntenna)
+        return;
     bChoosingNewAngle = !bChoosingNewAngle;
     #ifdef DEBUG_VERBOSE
         DebugPrintf("UserActionSwitch has been pushed, now: %s\r\n", bChoosingNewAngle ? "Setting" : "Confirmed");
@@ -260,9 +184,9 @@ void UserSetConfirmToggle() {
 
 // Toggles the Start/Stop state [CB]
 void StartStopToggle() {
-    bMoveAntenna = !bMoveAntenna;
-    if (bChoosingNewAngle)                                              // Auto-confirm upon starting the engine
+    if (bChoosingNewAngle && !bMoveAntenna)                             // Auto-confirm upon starting the engine
         UserSetConfirmToggle();
+    bMoveAntenna = !bMoveAntenna;
     #ifdef DEBUG_VERBOSE
         DebugPrintf("StartStopSwitch has been pushed, now: %s\r\n", bMoveAntenna ? "Start" : "Stop");
     #endif
@@ -430,6 +354,10 @@ void setup() {
 
 // Main loop
 void loop() {
+    static int lastDir = NOREDRAW,
+               lastSet = NOREDRAW;
+    static const int* angles[4] = { &lastSet, &lastDir, &beamSet, &beamDir };
+
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("---------------------------- Cycling loop() START ----------------------------\r\n");
         DebugPrintf("RAW value of rotator potentiometer == %d\r\n", AnalogRead12Bits(rotatorSensor));
@@ -445,6 +373,11 @@ void loop() {
     AutoManualAction();
     BeamSetting();
     BeamDirControl();
+    if ((lastDir != beamDir) || (lastSet != beamSet)) {
+        DrawBeamArrows(angles);
+        lastDir = beamDir;
+        lastSet = beamSet;
+    }
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("----------------------------- Cycling loop() END -----------------------------\r\n");
     #endif
