@@ -36,6 +36,8 @@ const uint8_t rotatorSensor = POTENTIOMETER_ROTOR_SENSOR;
 #define FASTADC                                                         // Fast ADC for 12bit readings
 #define POTENTIOMETER_MAX 1023                                          // Potentiometer range [0..x]
 
+#define MULTIPLE_SAMPLING 4                                             // How many N/16 samples get acquired per 12bit read cycle
+
 int beamDir = 0;                                                        // Actual beam direction
 int beamSet = 0;                                                        // Beam directione to set
 int beamSetRoute = 0;                                                   // Beam setting bearing the shortest route
@@ -45,6 +47,12 @@ boolean bMoveAntenna = false;                                           // Start
 boolean bSpeedModeAuto = true;                                          // Speed Mode Flag
 boolean bChoosingNewAngle = false;                                      // User Action flag
 boolean bPreSetup = true;                                               // Signal we're not out of the setup yet
+
+#if ((defined(FRAME_SKIPS)) && (0 < FRAME_SKIPS))
+    boolean bUpdateScreen = true;                                       // Draw/Skip signal
+#else
+    #define bUpdateScreen true
+#endif
 
 /*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
 
@@ -79,7 +87,7 @@ extern UTFT_Geometry geo;                                               // Geome
 #define ReadBeamSet() map(analogRead(beamSetPotentiometer), 0, POTENTIOMETER_MAX, 0, 359)
 
 // Print the angle
-void UserPrintAngle(int angle, const COLORS& color, const BHTYPE& type) {
+void UpdateAngles(int angle, const COLORS& color, const BHTYPE& type) {
     static COLORS lastla[2] = { (COLORS)0 };                            // Prev. colors
     static COLORS lastra[2] = { (COLORS)0 };
     static COLORS lastac[2] = { (COLORS)0 };
@@ -91,14 +99,12 @@ void UserPrintAngle(int angle, const COLORS& color, const BHTYPE& type) {
     HUD_BEAM hb = { type, nullptr, (COLORS)0 };
 
     // Overlaps
-    if (0 > angle)
-    {
+    if (0 > angle) {
         angle += 360;
         la = COLORS::Red;
         bIsOver = true;
     }
-    if (359 < angle)
-    {
+    if (359 < angle) {
         angle -= 360;
         ra = COLORS::Red;
         bIsOver = true;
@@ -110,21 +116,17 @@ void UserPrintAngle(int angle, const COLORS& color, const BHTYPE& type) {
         }
     }
 
-    if (lastla[type] != la)
-    {
+    if (lastla[type] != la) {
         lastla[type] = la;
         hb.color = la;
         DrawHudElement(&hb, HUD::BeamLeftArrow);
     }
-    if (lastra[type] != ra)
-    {
+    if (lastra[type] != ra) {
         lastra[type] = ra;
         hb.color = ra;
         DrawHudElement(&hb, HUD::BeamRightArrow);
     }
-
-    if ((lastAngle[type] != angle) || (lastac[type] != color))
-    {
+    if ((lastAngle[type] != angle) || (lastac[type] != color)) {
         lastAngle[type] = angle;
         lastac[type] = color;
         char buff[4];                                                   // 3 digits + '\0'
@@ -148,7 +150,7 @@ inline void BeamDirection() {
             DebugPrintf("Antenna bearing: %d\r\n", beamDir);
         }
     #endif
-    UserPrintAngle(beamDir, beamSetRoute != beamDir ? COLORS::Yellow : COLORS::Green, BeamDIR);
+    UpdateAngles(beamDir, beamSetRoute != beamDir ? COLORS::Yellow : COLORS::Green, BeamDIR);
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Exiting BeamDirection()\r\n");
     #endif
@@ -182,7 +184,7 @@ inline void BeamSetting() {
         }
     #endif
 
-    UserPrintAngle(beamSetRoute, color, BeamSET);
+    UpdateAngles(beamSetRoute, color, BeamSET);
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Exiting BeamSetting()\r\n");
     #endif
@@ -263,8 +265,7 @@ inline void SpinRotor() {
         digitalWrite(CWMotor, cw);
         digitalWrite(CCWMotor, ccw);
     #endif
-    if (last != msg)
-    {
+    if (last != msg) {
         last = msg;
         DrawHudElement(msg, HUD::RotationDirection);
     }
@@ -326,8 +327,7 @@ void CheckButtons() {
         if ((HIGH == state) && (BUTTON_STATE::Released < buttonState[c])) {
             buttonState[c] = BUTTON_STATE::Released;
             (*ButtonsMap[c].EventFunction)();
-        }
-        else if ((LOW == state) && (BUTTON_STATE::Released == buttonState[c])) {
+        } else if ((LOW == state) && (BUTTON_STATE::Released == buttonState[c])) {
             buttonState[c] = BUTTON_STATE::Pressed;
         }
     }
@@ -351,22 +351,22 @@ void ConfigureIOPins() {
 // Multisampling for 12bit readings
 inline int AnalogRead12Bits(uint8_t pin) {
     static int buffer[16] = { 0 };
-    static int track = 0;
+    static int track = 16 - MULTIPLE_SAMPLING;
     static boolean bInitialized = false;
     if (!bInitialized) {
         bInitialized = true;
-        for (int i = 0; i < 15; i++)
+        for (int i = 0; i < (16 - MULTIPLE_SAMPLING); i++)
             buffer[i] = analogRead(pin);
-        track = 15;
     }
-    buffer[track++] = analogRead(pin);
+    for (int i = 0; i < MULTIPLE_SAMPLING; i++)
+        buffer[track++] = analogRead(pin);
     if (15 < track)
         track -= 16;
 
     int Result = buffer[0];
     for (int i = 1; i < 16; i++)                                        // Read 16 times
         Result += buffer[i];                                            // Sum results
-    return (Result >>= 2);                                              // Divide by 4 for 12 bit value;
+    return (Result >> 2);                                               // Divide by 4 for 12 bit value;
 }
 
 // Arduino board bootstrap setup
@@ -399,7 +399,16 @@ void setup() {
 void loop() {
     static int lastDir = NOREDRAW,
                lastSet = NOREDRAW;
+    static boolean bUpdateAvailable = false;
     static const int* angles[4] = { &lastSet, &lastDir, &beamSet, &beamDir };
+    #if ((defined(FRAME_SKIPS)) && (0 < FRAME_SKIPS))
+        static int counter = -1;
+        counter += 1;
+        if (FRAME_SKIPS < counter)
+            counter -= (1 + FRAME_SKIPS);
+        if (FRAME_SKIPS == counter)
+            bUpdateScreen = true;
+    #endif
 
     CheckButtons();
     BeamSetting();
@@ -416,7 +425,11 @@ void loop() {
         DebugPrintf("Value of the BEAM setting == %d\r\n", beamSet);
         DebugPrintf("Value of the throttle setting == %d\r\n", spdValue);
     #endif
-    if ((lastDir != beamDir) || (lastSet != beamSet)) {
+    if ((lastDir != beamDir) || (lastSet != beamSet))
+        bUpdateAvailable = true;
+    if (bUpdateAvailable && bUpdateScreen) {
+        bUpdateAvailable = false;
+        bUpdateScreen = false;
         DrawBeamArrows(angles);
         lastDir = beamDir;
         lastSet = beamSet;

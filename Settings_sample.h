@@ -48,6 +48,15 @@
 
 
 
+//  Frame skips
+//
+//  Due to the nature of Arduino and that of TFT software controlled monitors, it
+//  is highly suggested to skip the screen updates and only update once in a while.
+//  This will result, at least on paper, in better performances and in a better control
+//  of the rotor, but your mileage might vary. Default: TBC.
+//
+#define FRAME_SKIPS                         15      /* Draw one frame every FRAME_SKIPS+1 */
+
 //  Pin configuration
 //
 //  If you didn't follow the original schematics, update the pin configuration
