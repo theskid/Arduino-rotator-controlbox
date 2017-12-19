@@ -15,18 +15,18 @@
 //
 #define OVERLAP_TOLERANCE 15
 
-//  Pin configuration
-//  If you didn't follow the original schematics, update the pin configuration
-//  to match your setup
-#define BUTTON_START_STOP                   12      /* Start/Stop */
-#define BUTTON_CHANGE_PLANNED_DIRECTION      8      /* Setting/Confirmed */
-#define BUTTON_AUTO_MANUAL                  13      /* Auto/Manual */
-#define PWM_SPEED_CONTROL                    9      /* Manual speed value */
-#define MOTOR_CLOCKWISE_SIGNAL              10      /* Spin the rotor clockwise */
-#define MOTOR_COUNTERCLOCKWISE_SIGNAL       11      /* Spin the rotor counter clockwise */
-#define POTENTIOMETER_MANUAL_SPEED          A0      /* Manually control the speed you want applied to the rotor */
-#define POTENTIOMETER_PLANNED_DIRECTION     A1      /* Select the new angle for the antenna beam */
-#define POTENTIOMETER_ROTOR_SENSOR          A2      /* Detect the current rotor position (angle) */
+// Start rotation of the potentiometer partition mounted on the rotor motor.
+//
+// "ROTATION_BEGIN 1200" indicates that the rotor turn starts where the potentiometer 
+// displays, in debug mode, a raw value equal to 1200.
+#define ROTATION_BEGIN 0
+
+// End rotation of the potentiometer partition mounted on the rotor motor.
+//
+// "ROTATION_END 1400" indicates that the rotor turn end where the potentiometer 
+// displays, in debug mode, a raw value equal to 1400.
+#define ROTATION_END 4096
+
 
 //  IMPORTANT!
 //
@@ -37,12 +37,29 @@
 //#define ADAFRUIT_ILI9341_S5               1       /* ILI9341 Shield, SPI 5 pins */
 
 /*
+**
+**  HIC SUNT DRACONES
 **  THERE BE DRAGONS
 **
 **  Only go further if you know what you're doing!
 */
 
+//  Pin configuration
+//  If you didn't follow the original schematics, update the pin configuration
+//  to match your setup
+
+#define BUTTON_START_STOP                   12      /* Start/Stop */
+#define BUTTON_CHANGE_PLANNED_DIRECTION      8      /* Setting/Confirmed */
+#define BUTTON_AUTO_MANUAL                  13      /* Auto/Manual */
+#define PWM_SPEED_CONTROL                    9      /* Manual speed value */
+#define MOTOR_CLOCKWISE_SIGNAL              10      /* Spin the rotor clockwise */
+#define MOTOR_COUNTERCLOCKWISE_SIGNAL       11      /* Spin the rotor counter clockwise */
+#define POTENTIOMETER_MANUAL_SPEED          A0      /* Manually control the speed you want applied to the rotor */
+#define POTENTIOMETER_PLANNED_DIRECTION     A1      /* Select the new angle for the antenna beam */
+#define POTENTIOMETER_ROTOR_SENSOR          A2      /* Detect the current rotor position (angle) */
+
 // (Un)comment to enable/disable debug mode.
+
 //#define DEBUG                                     /* Minimal debug informations and wait-on-serial */
 //#define DEBUG_VERBOSE                             /* Basic debug informations */
 //#define DEBUG_ULTRAVERBOSE                        /* Open the floods */

@@ -31,10 +31,10 @@ const uint8_t spdSetPotentiometer = POTENTIOMETER_MANUAL_SPEED;
 const uint8_t beamSetPotentiometer = POTENTIOMETER_PLANNED_DIRECTION;
 const uint8_t rotatorSensor = POTENTIOMETER_ROTOR_SENSOR;
 
-#define POTENTIOMETER_MAX 1023                                          // Potentiometer range [0..x]
+#define POTENTIOMETER_MAX 1023                                          // Potentiometer range [0..x] questa non l'ho capita un potenziometro per definizione ha quel range non lo devi definire tu
 
-const int rotatorStart = 1847;
-const int rotatorStop = 2245;
+const int rotatorStart = ROTATION_BEGIN;
+const int rotatorStop = ROTATION_END;
 
 /*** GLOBAL VARIABLES ************************************/
 
