@@ -1,6 +1,6 @@
 # Arduino Rotator Controlbox
 
-This project is using third party open-source software, specifically [**UTFT**](http://www.rinkydinkelectronics.com/library.php?id=51), [**UTFT_Geometry**](http://www.rinkydinkelectronics.com/library.php?id=59) by [**Henning Karlsen**](http://www.rinkydinkelectronics.com/), [**SevenSegmentsFull**](http://www.rinkydinkelectronics.com/r_fonts.php) by the user **Chris**.
+This project is using third party open-source software, specifically [**UTFT**](http://www.rinkydinkelectronics.com/library.php?id=51), [**UTFT_Geometry**](http://www.rinkydinkelectronics.com/library.php?id=59), [**default fonts**](http://www.rinkydinkelectronics.com/r_fonts.php) by [**Henning Karlsen**](http://www.rinkydinkelectronics.com/).
 
 ## Library dependencies
 
