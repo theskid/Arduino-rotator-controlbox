@@ -4,8 +4,8 @@
 // A SkyDubh production (http://www.skydubh.com/)
 // 
 // Crew
-// Diego Cioschi: concept and first code writing
-// Bruno Passeri: code optimization and refactoring
+// Diego Cioschi: PoC and first code writing
+// Bruno Passeri: code optimization, refactoring, graphical overhaul
 //
 // Dependencies:
 // UTFT Library from Henning Karlsen (http://www.rinkydinkelectronics.com/library.php)
@@ -18,18 +18,18 @@
 
 /*** PIN DESIGNATION AND COMPONENTS SETTINGS *************/
 
-const int StartStopSwitch = 12;
-const int UserActionSwitch = 8;
-const int SpeedControlSwitch = 13;
+const int StartStopSwitch = BUTTON_START_STOP;
+const int UserActionSwitch = BUTTON_CHANGE_PLANNED_DIRECTION;
+const int SpeedControlSwitch = BUTTON_AUTO_MANUAL;
 #ifndef PROTEUS_VSM
-const int PWMSpeedControl = 9;
-const int CWMotor = 10;
-const int CCWMotor = 11;
+const int PWMSpeedControl = PWM_SPEED_CONTROL;
+const int CWMotor = MOTOR_CLOCKWISE_SIGNAL;
+const int CCWMotor = MOTOR_COUNTERCLOCKWISE_SIGNAL;
 #endif
 
-const uint8_t spdSetPotentiometer = A0;
-const uint8_t beamSetPotentiometer = A1;
-const uint8_t rotatorSensor = A2;
+const uint8_t spdSetPotentiometer = POTENTIOMETER_MANUAL_SPEED;
+const uint8_t beamSetPotentiometer = POTENTIOMETER_PLANNED_DIRECTION;
+const uint8_t rotatorSensor = POTENTIOMETER_ROTOR_SENSOR;
 
 #define POTENTIOMETER_MAX 1023                                          // Potentiometer range [0..x]
 
@@ -137,14 +137,14 @@ void UserPrintAngle(int angle, const COLORS& color, const BHTYPE& type) {
 }
 
 // Update the azimuthal beam direction
-inline void BeamDirControl() {
+inline void BeamDirection() {
     #ifdef DEBUG_ULTRAVERBOSE
-        DebugPrint("Entering BeamDirControl()\r\n");
+        DebugPrint("Entering BeamDirection()\r\n");
     #endif
     beamDir = ReadBeamDir();
     UserPrintAngle(beamDir, beamSet!=beamDir?Yellow:Green, BeamDIR);    // We defer the anti-flicker to UPA
     #ifdef DEBUG_ULTRAVERBOSE
-        DebugPrint("Exiting BeamDirControl()\r\n");
+        DebugPrint("Exiting BeamDirection()\r\n");
     #endif
 }
 
@@ -203,12 +203,13 @@ void AutoManualToggle() {
     DrawHudElement(bSpeedModeAuto ? "  Auto" : "Manual", HUD::AutoManual);
  }
 
-void StartStopAction() {
+ // Starts and stops the rotor upon need
+inline void SpinRotor() {
     static const char* msg = nullptr;
     static const char* last = nullptr;
     
     #ifdef DEBUG_ULTRAVERBOSE
-        DebugPrint("Entering StartStopAction()\r\n");
+        DebugPrint("Entering SpinRotor()\r\n");
     #endif
 
     uint8_t cw = LOW;
@@ -234,13 +235,14 @@ void StartStopAction() {
         DrawHudElement(msg, HUD::RotationDirection);
     }
     #ifdef DEBUG_ULTRAVERBOSE
-        DebugPrint("Exiting StartStopAction()\r\n");
+        DebugPrint("Exiting SpinRotor()\r\n");
     #endif
 }
 
-void AutoManualAction() {
+// Defines the speed to apply to the rotor
+inline void SetRotorSpeed() {
     #ifdef DEBUG_ULTRAVERBOSE
-        DebugPrint("Entering AutoManualAction()\r\n");
+        DebugPrint("Entering SetRotorSpeed()\r\n");
     #endif
     static int lastSpeedValue = -1;
     if (!bSpeedModeAuto) {
@@ -269,7 +271,7 @@ void AutoManualAction() {
         DrawHudElement((void*)spdValue, HUD::SpeedMeter);
     }
     #ifdef DEBUG_ULTRAVERBOSE
-        DebugPrint("Exiting AutoManualAction()\r\n");
+        DebugPrint("Exiting SetRotorSpeed()\r\n");
     #endif
 }
 
@@ -348,7 +350,7 @@ void setup() {
     ConfigureIOPins();
     AutoManualToggle();
     BeamSetting();
-    BeamDirControl();
+    BeamDirection();
     bPreSetup = false;
 }
 
@@ -358,6 +360,7 @@ void loop() {
                lastSet = NOREDRAW;
     static const int* angles[4] = { &lastSet, &lastDir, &beamSet, &beamDir };
 
+    CheckButtons();
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("---------------------------- Cycling loop() START ----------------------------\r\n");
         DebugPrintf("RAW value of rotator potentiometer == %d\r\n", AnalogRead12Bits(rotatorSensor));
@@ -368,11 +371,10 @@ void loop() {
         DebugPrintf("Value of the BEAM setting == %d\r\n", beamSet);
         DebugPrintf("Value of the throttle setting == %d\r\n", spdValue);
     #endif
-    CheckButtons();
-    StartStopAction();
-    AutoManualAction();
+    SetRotorSpeed();
+    SpinRotor();
     BeamSetting();
-    BeamDirControl();
+    BeamDirection();
     if ((lastDir != beamDir) || (lastSet != beamSet)) {
         DrawBeamArrows(angles);
         lastDir = beamDir;
