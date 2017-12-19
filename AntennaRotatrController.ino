@@ -31,17 +31,10 @@ const uint8_t spdSetPotentiometer = POTENTIOMETER_MANUAL_SPEED;
 const uint8_t beamSetPotentiometer = POTENTIOMETER_PLANNED_DIRECTION;
 const uint8_t rotatorSensor = POTENTIOMETER_ROTOR_SENSOR;
 
-#define POTENTIOMETER_MAX 1023                                          // Potentiometer range [0..x] questa non l'ho capita un potenziometro per definizione ha quel range non lo devi definire tu
-
-const int rotatorStart = ROTATION_BEGIN;
-const int rotatorStop = ROTATION_END;
-
-/*** GLOBAL VARIABLES ************************************/
+/*** GLOBAL DECLARATIONS *********************************/
 
 #define FASTADC                                                         // Fast ADC for 12bit readings
-
-#define MIN_AZIMUTH 0                                                   // N
-#define MAX_AZIMUTH 359                                                 // N, 1° W
+#define POTENTIOMETER_MAX 1023                                          // Potentiometer range [0..x]
 
 int beamDir = 0;                                                        // Actual beam direction
 int beamSet = 0;                                                        // Beam directione to set
@@ -76,8 +69,13 @@ extern UTFT_Geometry geo;                                               // Geome
 *******************************************************************/
 
 // Sensors reading helpers
-#define ReadBeamDir() map(AnalogRead12Bits(rotatorSensor), rotatorStart, rotatorStop, MIN_AZIMUTH, MAX_AZIMUTH)
-#define ReadBeamSet() map(analogRead(beamSetPotentiometer), 0, POTENTIOMETER_MAX, MIN_AZIMUTH, MAX_AZIMUTH)
+#ifdef DEBUG
+    int rawBeamDir;
+    #define ReadBeamDir() map(rawBeamDir = AnalogRead12Bits(rotatorSensor), ROTATION_BEGIN, ROTATION_END, 0, 360)
+#else
+    #define ReadBeamDir() map(AnalogRead12Bits(rotatorSensor), ROTATION_BEGIN, ROTATION_END, 0, 360)
+#endif
+#define ReadBeamSet() map(analogRead(beamSetPotentiometer), 0, POTENTIOMETER_MAX, 0, 359)
 
 // Print the angle
 void UserPrintAngle(int angle, const COLORS& color, const BHTYPE& type) {
@@ -174,7 +172,7 @@ inline void BeamSetting() {
 
 // Toggles the Set/Confirm state [CB]
 void UserSetConfirmToggle() {
-    if (bMoveAntenna)
+    if (bMoveAntenna)                                                   // Forbid a change of destination during rotor movement
         return;
     bChoosingNewAngle = !bChoosingNewAngle;
     #ifdef DEBUG_VERBOSE
@@ -331,7 +329,7 @@ inline int AnalogRead12Bits(uint8_t pin) {
 // Arduino board bootstrap setup
 void setup() {
     Serial.begin(9600);                                                 // 9600 baud rate
-    #ifdef DEBUG
+    #ifdef DEBUG_WAITONSERIAL
         while(!Serial);                                                 // For portability
     #endif
 
@@ -361,9 +359,13 @@ void loop() {
     static const int* angles[4] = { &lastSet, &lastDir, &beamSet, &beamDir };
 
     CheckButtons();
+    BeamSetting();
+    BeamDirection();
+    SetRotorSpeed();
+    SpinRotor();
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("---------------------------- Cycling loop() START ----------------------------\r\n");
-        DebugPrintf("RAW value of rotator potentiometer == %d\r\n", AnalogRead12Bits(rotatorSensor));
+        DebugPrintf("RAW value of rotator potentiometer == %d\r\n", rawBeamDir);
         DebugPrintf("Value of the start/stop flag == %s\r\n", bMoveAntenna ? "Start" : "Stop");
         DebugPrintf("Value of the Auto/Manual flag == %s\r\n", bSpeedModeAuto ? "Automatic" : "Manual");
         DebugPrintf("Value of the User Action flag == %s\r\n", bChoosingNewAngle ? "Setting" : "Confirmed");
@@ -371,19 +373,18 @@ void loop() {
         DebugPrintf("Value of the BEAM setting == %d\r\n", beamSet);
         DebugPrintf("Value of the throttle setting == %d\r\n", spdValue);
     #endif
-    SetRotorSpeed();
-    SpinRotor();
-    BeamSetting();
-    BeamDirection();
     if ((lastDir != beamDir) || (lastSet != beamSet)) {
         DrawBeamArrows(angles);
         lastDir = beamDir;
         lastSet = beamSet;
     }
-    #ifdef DEBUG_ULTRAVERBOSE
-        DebugPrint("----------------------------- Cycling loop() END -----------------------------\r\n");
-    #endif
-    #if defined(DEBUG_SLEEP)
-        delay(1000);
+    #ifdef DEBUG
+        DrawHudElement(&rawBeamDir, HUD::RawRotorPotentiometer);
+        #ifdef DEBUG_ULTRAVERBOSE
+            DebugPrint("----------------------------- Cycling loop() END -----------------------------\r\n");
+        #endif
+        #if defined(DEBUG_SLEEP)
+            delay(1000);
+        #endif
     #endif
 }

@@ -7,6 +7,8 @@
 #include "Displays.h"
 #include "SerialPrint.h"
 
+/*** DISPLAY CONFIGURATIONS ******************************/
+
 #if defined(TFT_HVGA_480x320)
     #define WIDTH 480
     #define HEIGHT 320
@@ -17,15 +19,20 @@
     UTFT display(ILI9341_S5P, MOSI, SCK, 10 /*DC*/, NOTINUSE, 9 /*CS*/);
 #endif
 
-UTFT_Geometry geo(&display);
+
+/*******************************************************************
+**** THERE BE DRAGONS **********************************************
+*******************************************************************/
+
+UTFT_Geometry geo(&display);                                            // Geometric helper
 
 typedef struct {
     uint8_t* data;
     byte w;
     byte h;
-} FONT_DATA;
+} FONT_DATA;                                                            // Font data
 
-#if (480 > WIDTH)
+#if (480 > WIDTH)                                                       // Small screens configuration (240p-)
     #define MFS SmallFont
     #define AFS BigFont
     extern uint8_t MFS[];
@@ -33,7 +40,7 @@ typedef struct {
     const FONT_DATA _main = { MFS, 8, 12 };
     const FONT_DATA _angles = { AFS, 16, 16 };
     #define OVERLAP_SIZE 6
-#else
+#else                                                                   // Medium screens configuration (320p+)
     #define MFS BigFont
     #define AFS SevenSegNumFont
     extern uint8_t MFS[];
@@ -45,10 +52,9 @@ typedef struct {
 #undef MFS
 #undef AFS
 
-#define DISPLAY_MARGIN (_main.h >> 1)
+#define DISPLAY_MARGIN (_main.h >> 1)                                   // We keep half the width of a character as display margin
 #define PI_OVER_180 0.01745329251994329576923690768489                  // Pi/180. Trigonometry is fun!
 
-// Compass 60% 50% 33%
 COMPASS compass = { int(WIDTH * 0.6), HEIGHT >> 1, int(HEIGHT * 0.3333333333333333333333333333) };
 AREA speedMeter = {
     { WIDTH - DISPLAY_MARGIN - (_main.w << 1) - (_main.w >> 1), int(3 * _main.h) + 2 + DISPLAY_MARGIN },
@@ -63,17 +69,15 @@ void UserPrint(const int& x, const int& y, const char *userData, const COLORS& c
     }
     display.print(userData, x, y);
 }
-/*inline void UserPrint(const int& x, const int& y, const __FlashStringHelper *userData, const COLORS& color, const UI_FONT& font) {
-    // Load strings from flash
-    //UserPrint(x, y, (const char*)userData, color, font);
-}*/
 
 void DrawHudElement(const void* data, const HUD& hud) {
     switch (hud) {
+        // Draw the Auto/Manual indicator
         case HUD::AutoManual: {
             UserPrint(WIDTH - (_main.w * strlen((const char*)data)) - DISPLAY_MARGIN, DISPLAY_MARGIN, (const char*)data, COLORS::Yellow);
             break;
         }
+        // Draw the clockwise/counterclockwise indicator
         case HUD::RotationDirection: {
             int r = WIDTH - (_main.w * 3) - DISPLAY_MARGIN;
             if (4 == strlen((const char*)data))
@@ -81,10 +85,12 @@ void DrawHudElement(const void* data, const HUD& hud) {
             UserPrint(r, _main.h + DISPLAY_MARGIN, (const char*)data, COLORS::Yellow);
             break;
         }
+        // Draw the overlap alert
         case HUD::OverlapAlert: {
             UserPrint(WIDTH - (_main.w << 2) - DISPLAY_MARGIN, HEIGHT - _main.h - DISPLAY_MARGIN, (const char*)data, COLORS::Red);
             break;
         }
+        // Draw the current speed applied to the rotor
         case HUD::CurrentSpeed: {
             char speed[5] = { 0 };
             const char* mask = " %d ";
@@ -101,6 +107,7 @@ void DrawHudElement(const void* data, const HUD& hud) {
             UserPrint(x, y, speed, COLORS::Yellow);
             break;
         }
+        // Draw the speed meter
         case HUD::SpeedMeter: {
             static int lastMap = -1;
             #define PADDING 2
@@ -119,6 +126,7 @@ void DrawHudElement(const void* data, const HUD& hud) {
             }
             break;
         }
+        // Draw the rotation angles (both projected and current) and the overlap signals
         case HUD::BeamAngle:
         case HUD::BeamLeftArrow:
         case HUD::BeamRightArrow: {
@@ -140,6 +148,14 @@ void DrawHudElement(const void* data, const HUD& hud) {
             }
             break;
         }
+#ifdef DEBUG
+        // While in debug mode, override the QRZ indicator and put to screen the raw rotator potentiomenter value
+        case HUD::RawRotorPotentiometer: {
+            static char rotor[14] = "Raw RPV: 0000";
+            sprintf(&rotor[9], "%4d", *(int*)data);
+            UserPrint(DISPLAY_MARGIN, HEIGHT - _main.h - DISPLAY_MARGIN, rotor, COLORS::White);
+        }
+#endif
     }
 }
 
@@ -155,7 +171,9 @@ void InitializeDisplay() {
     #define BEAMS_CENTER (((OVERLAP_SIZE << 1) + 11 + (_angles.w * 3) - (_main.w << 3)) >> 1)
     UserPrint(DISPLAY_MARGIN + BEAMS_CENTER, int(HEIGHT * 0.22), ("BEAM DIR"), COLORS::Red);
     UserPrint(DISPLAY_MARGIN + BEAMS_CENTER, int(HEIGHT * 0.55), ("BEAM SET"), COLORS::Red);
-    UserPrint(DISPLAY_MARGIN, HEIGHT-_main.h-DISPLAY_MARGIN, (QRZ ": " NAME), COLORS::White);
+    #ifndef DEBUG
+        UserPrint(DISPLAY_MARGIN, HEIGHT-_main.h-DISPLAY_MARGIN, (QRZ ": " NAME), COLORS::White);
+    #endif
     display.setColor(COLORS::Green);
     display.drawRect(speedMeter.tl.x,speedMeter.tl.y,speedMeter.br.x,speedMeter.br.y);
     display.drawCircle(compass.X, compass.Y, compass.radius);

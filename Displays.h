@@ -54,6 +54,9 @@ typedef enum {
     BeamAngle = 6,
     BeamLeftArrow = 7,
     BeamRightArrow = 8,
+#ifdef DEBUG
+    RawRotorPotentiometer = 0x7FF4,
+#endif
 } HUD;
 
 #define NOREDRAW 0x7FFE                                                 // Initial state of lastBeam/lastSet

@@ -15,17 +15,19 @@
 //
 #define OVERLAP_TOLERANCE 15
 
-// Start rotation of the potentiometer partition mounted on the rotor motor.
+//  Start rotation of the potentiometer partition mounted on the rotor motor.
 //
-// "ROTATION_BEGIN 1200" indicates that the rotor turn starts where the potentiometer 
-// displays, in debug mode, a raw value equal to 1200.
+//  "ROTATION_BEGIN 1200" indicates that the rotor turn starts where the potentiometer 
+//  displays, in debug mode, a raw value equal to 1200.
+//
 #define ROTATION_BEGIN 0
 
-// End rotation of the potentiometer partition mounted on the rotor motor.
+//  End rotation of the potentiometer partition mounted on the rotor motor.
 //
-// "ROTATION_END 1400" indicates that the rotor turn end where the potentiometer 
-// displays, in debug mode, a raw value equal to 1400.
-#define ROTATION_END 4096
+//  "ROTATION_END 1400" indicates that the rotor turn end where the potentiometer 
+//  displays, in debug mode, a raw value equal to 1400.
+//
+#define ROTATION_END 4092
 
 
 //  IMPORTANT!
@@ -36,18 +38,21 @@
 //#define TFT_HVGA_480x320                  1       /* ILI9481 */
 //#define ADAFRUIT_ILI9341_S5               1       /* ILI9341 Shield, SPI 5 pins */
 
+
+
 /*
-**
-**  HIC SUNT DRACONES
-**  THERE BE DRAGONS
+**  HIC SUNT DRACONES – THERE BE DRAGONS!
 **
 **  Only go further if you know what you're doing!
 */
 
-//  Pin configuration
-//  If you didn't follow the original schematics, update the pin configuration
-//  to match your setup
 
+
+//  Pin configuration
+//
+//  If you didn't follow the original schematics, update the pin configuration
+//  to match your setup.
+//
 #define BUTTON_START_STOP                   12      /* Start/Stop */
 #define BUTTON_CHANGE_PLANNED_DIRECTION      8      /* Setting/Confirmed */
 #define BUTTON_AUTO_MANUAL                  13      /* Auto/Manual */
@@ -60,7 +65,8 @@
 
 // (Un)comment to enable/disable debug mode.
 
-//#define DEBUG                                     /* Minimal debug informations and wait-on-serial */
+#define DEBUG                                       /* Minimal debug and setup informations */
 //#define DEBUG_VERBOSE                             /* Basic debug informations */
 //#define DEBUG_ULTRAVERBOSE                        /* Open the floods */
 //#define DEBUG_SLEEP                               /* Wait 1 second after every loop */
+//#define DEBUG_WAITONSERIAL                        /* Wait for USB Serial to be connected while booting to avoid board resets */
