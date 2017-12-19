@@ -141,6 +141,13 @@ inline void BeamDirection() {
         DebugPrint("Entering BeamDirection()\r\n");
     #endif
     beamDir = ReadBeamDir();
+    #ifdef DEBUG
+        static int lbd = 0x7FFF;
+        if (lbd != beamDir) {
+            lbd = beamDir;
+            DebugPrintf("Antenna bearing: %d\r\n", beamDir);
+        }
+    #endif
     UserPrintAngle(beamDir, beamSetRoute != beamDir ? COLORS::Yellow : COLORS::Green, BeamDIR);
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Exiting BeamDirection()\r\n");
@@ -165,6 +172,15 @@ inline void BeamSetting() {
     if (OVERLAP_TOLERANCE >= (angle + 1))
         angle = abs(beamDir - (angle + 360)) < abs(beamDir - angle) ? angle + 360 : angle;
     beamSetRoute = angle;
+
+    #ifdef DEBUG_VERBOSE
+        static int lbs = 0x7FFF, lbsr = 0x7FFF;
+        if ((lbs != beamSet) || (lbsr != beamSetRoute)) {
+            lbs = beamSet;
+            lbsr = beamSetRoute;
+            DebugPrintf("Planned direction: %d\r\nShortest calculated route: %d\r\n", beamSet, beamSetRoute);
+        }
+    #endif
 
     UserPrintAngle(beamSetRoute, color, BeamSET);
     #ifdef DEBUG_ULTRAVERBOSE
@@ -225,9 +241,27 @@ inline void SpinRotor() {
         ccw = HIGH;
         msg = ("CCW");
     }
+    #ifdef DEBUG_VERBOSE
+        static uint8_t lcw = LOW, lccw = LOW;
+        if ((lcw != cw) || (lccw != ccw)) {
+            if ((LOW == lcw) && (HIGH == cw))
+                DebugPrint("Rotating clockwise\r\n");
+            else if ((LOW == lccw) && (HIGH == ccw))
+                DebugPrint("Rotating counterclockwise\r\n");
+            lcw = cw;
+            lccw = ccw;
+            if ((LOW == cw) && (LOW == ccw))
+                DebugPrintf("Stopping the rotor\r\n"
+                    "- Current antenna bearing: %d\r\n"
+                    "- Current planned direction: %d\r\n"
+                    "- Current shortest route: %d\r\n",
+                    beamDir, beamSet, beamSetRoute
+                );
+        }
+    #endif
     #ifndef PROTEUS_VSM
-    digitalWrite(CWMotor, cw);
-    digitalWrite(CCWMotor, ccw);
+        digitalWrite(CWMotor, cw);
+        digitalWrite(CCWMotor, ccw);
     #endif
     if (last != msg)
     {
@@ -264,6 +298,13 @@ inline void SetRotorSpeed() {
             analogWrite(PWMSpeedControl, spdValue);
         #endif
     }
+    #ifdef DEBUG_VERBOSE
+        static int s = 0x7FFF;
+        if (s != spdValue) {
+            s = spdValue;
+            DebugPrintf("Current rotor motor speed: %d\r\n", spdValue);
+        }
+    #endif
     int speed = map(spdValue,0,255,0,100);
     if (lastSpeedValue != speed) {
         lastSpeedValue = speed;
@@ -385,7 +426,7 @@ void loop() {
         #ifdef DEBUG_ULTRAVERBOSE
             DebugPrint("----------------------------- Cycling loop() END -----------------------------\r\n");
         #endif
-        #if defined(DEBUG_SLEEP)
+        #ifdef DEBUG_SLEEP
             delay(1000);
         #endif
     #endif
