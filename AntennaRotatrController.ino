@@ -15,6 +15,7 @@
 #include "Global.h"                                                     // Main header
 #include "Displays.h"                                                   // Displays and initializations
 #include "SerialPrint.h"                                                // Serial (and debug) print(f) helpers
+#include <microsmooth.h>
 
 /*** PIN DESIGNATION AND COMPONENTS SETTINGS *************/
 
@@ -359,7 +360,8 @@ void ConfigureIOPins() {
 
 // Multisampling for 12bit readings
 inline int AnalogRead12Bits(uint8_t pin) {
-    static int buffer[16] = { 0 };
+    static uint16_t* history = ms_init(SGA);
+/*    static int buffer[16] = { 0 };
     #ifndef DISABLE_MULTISTEP_SAMPLING
         for (int i = 0; i < 16; i++)
             buffer[i] = analogRead(pin);
@@ -377,10 +379,12 @@ inline int AnalogRead12Bits(uint8_t pin) {
             track -= 16;
     #endif
 
-    int Result = buffer[0];
-    for (int i = 1; i < 16; i++)                                        // Read 16 times
-        Result += buffer[i];                                            // Sum results
-    return (Result >> 2);                                               // Divide by 4 for 12 bit value;
+    int Result;*/
+    for (int i = 1; i < 16; i++) {                                      // Read 16 times
+        sga_filter(analogRead(pin), history);                         // Sum results
+        //DebugPrintf("%d %d %d %d %d %d %d %d %d\r\n", history[0], history[1], history[2], history[3], history[4], history[5], history[6], history[7], history[8]);
+    }
+    return (history[4] << 2);                                           // Divide by 4 for 12 bit value;
 }
 
 // Arduino board bootstrap setup
@@ -411,9 +415,9 @@ void setup() {
 
 // Main loop
 void loop() {
+    static boolean bUpdateAvailable = false;
     static int lastDir = NOREDRAW,
                lastSet = NOREDRAW;
-    static boolean bUpdateAvailable = false;
     static const int* angles[4] = { &lastSet, &lastDir, &beamSet, &beamDir };
     #ifndef DISABLE_SKIPPING
         static int counter = -1;
@@ -439,19 +443,15 @@ void loop() {
         DebugPrintf("Value of the BEAM setting == %d\r\n", beamSet);
         DebugPrintf("Value of the throttle setting == %d\r\n", spdValue);
     #endif
-    #ifndef DISABLE_SKIPPING
-        if ((lastDir != beamDir) || (lastSet != beamSet))
-            bUpdateAvailable = true;
-        if (bUpdateAvailable && bUpdateScreen) {
-            bUpdateAvailable = false;
-            bUpdateScreen = false;
-    #endif
-            DrawBeamArrows(angles);
-            lastDir = beamDir;
-            lastSet = beamSet;
-    #ifndef DISABLE_SKIPPING
-        }
-    #endif
+    if ((lastDir != beamDir) || (lastSet != beamSet))
+        bUpdateAvailable = true;
+    if (bUpdateAvailable && bUpdateScreen) {
+        bUpdateAvailable = false;
+        bUpdateScreen = false;
+        DrawBeamArrows(angles);
+        lastDir = beamDir;
+        lastSet = beamSet;
+    }
     #ifdef DEBUG
         DrawHudElement(&rawBeamDir, HUD::RawRotorPotentiometer);
         #ifdef DEBUG_ULTRAVERBOSE

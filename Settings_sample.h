@@ -55,7 +55,7 @@
 //  This will result, at least on paper, in better performances and in a better control
 //  of the rotor, but your mileage might vary. Default: TBC.
 //
-#define FRAME_SKIPS                         15      /* Draw one frame every FRAME_SKIPS+1 */
+#define FRAME_SKIPS                          3      /* Draw one frame every FRAME_SKIPS+1 */
 
 //  Pin configuration
 //
