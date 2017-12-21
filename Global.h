@@ -26,3 +26,8 @@ typedef enum {
 #if ((!defined(DEBUG_VERBOSE)) && defined(DEBUG_ULTRAVERBOSE))
     #define DEBUG_VERBOSE
 #endif
+
+/* Frame skips expansion */
+#if ((defined(FRAME_SKIPS)) && (0 < FRAME_SKIPS))
+#define DISABLE_SKIPPING
+#endif

@@ -36,7 +36,7 @@ const uint8_t rotatorSensor = POTENTIOMETER_ROTOR_SENSOR;
 #define FASTADC                                                         // Fast ADC for 12bit readings
 #define POTENTIOMETER_MAX 1023                                          // Potentiometer range [0..x]
 
-#define MULTIPLE_SAMPLING 4                                             // How many N/16 samples get acquired per 12bit read cycle
+#define MULTIPLE_SAMPLING 0                                             // How many N/16 samples get acquired per 12bit read cycle
 
 int beamDir = 0;                                                        // Actual beam direction
 int beamDirStart = 0;                                                   // The initial bearing before the rotation begins
@@ -49,10 +49,13 @@ boolean bSpeedModeAuto = true;                                          // Speed
 boolean bChoosingNewAngle = false;                                      // User Action flag
 boolean bPreSetup = true;                                               // Signal we're not out of the setup yet
 
-#if ((defined(FRAME_SKIPS)) && (0 < FRAME_SKIPS))
+#ifndef DISABLE_SKIPPING
     boolean bUpdateScreen = true;                                       // Draw/Skip signal
 #else
     #define bUpdateScreen true
+#endif
+#if ((!defined(MULTIPLE_SAMPLING)) || (0 == MULTIPLE_SAMPLING))
+#define DISABLE_MULTISTEP_SAMPLING
 #endif
 
 /*** BUTTON MAPPING AND EVENT TRIGGERS *******************/
@@ -357,17 +360,22 @@ void ConfigureIOPins() {
 // Multisampling for 12bit readings
 inline int AnalogRead12Bits(uint8_t pin) {
     static int buffer[16] = { 0 };
-    static int track = 16 - MULTIPLE_SAMPLING;
-    static boolean bInitialized = false;
-    if (!bInitialized) {
-        bInitialized = true;
-        for (int i = 0; i < (16 - MULTIPLE_SAMPLING); i++)
+    #ifdef DISABLE_MULTISTEP_SAMPLING
+        for (int i = 0; i < 16; i++)
             buffer[i] = analogRead(pin);
-    }
-    for (int i = 0; i < MULTIPLE_SAMPLING; i++)
-        buffer[track++] = analogRead(pin);
-    if (15 < track)
-        track -= 16;
+    #else
+        static int track = 16 - MULTIPLE_SAMPLING;
+        static boolean bInitialized = false;
+        if (!bInitialized) {
+            bInitialized = true;
+            for (int i = 0; i < (16 - MULTIPLE_SAMPLING); i++)
+                buffer[i] = analogRead(pin);
+        }
+        for (int i = 0; i < MULTIPLE_SAMPLING; i++)
+            buffer[track++] = analogRead(pin);
+        if (15 < track)
+            track -= 16;
+    #endif
 
     int Result = buffer[0];
     for (int i = 1; i < 16; i++)                                        // Read 16 times
@@ -407,7 +415,7 @@ void loop() {
                lastSet = NOREDRAW;
     static boolean bUpdateAvailable = false;
     static const int* angles[4] = { &lastSet, &lastDir, &beamSet, &beamDir };
-    #if ((defined(FRAME_SKIPS)) && (0 < FRAME_SKIPS))
+    #ifdef DISABLE_SKIPPING
         static int counter = -1;
         counter += 1;
         if (FRAME_SKIPS < counter)
@@ -431,15 +439,19 @@ void loop() {
         DebugPrintf("Value of the BEAM setting == %d\r\n", beamSet);
         DebugPrintf("Value of the throttle setting == %d\r\n", spdValue);
     #endif
-    if ((lastDir != beamDir) || (lastSet != beamSet))
-        bUpdateAvailable = true;
-    if (bUpdateAvailable && bUpdateScreen) {
-        bUpdateAvailable = false;
-        bUpdateScreen = false;
-        DrawBeamArrows(angles);
-        lastDir = beamDir;
-        lastSet = beamSet;
-    }
+    #ifndef DISABLE_SKIPPING
+        if ((lastDir != beamDir) || (lastSet != beamSet))
+            bUpdateAvailable = true;
+        if (bUpdateAvailable && bUpdateScreen) {
+            bUpdateAvailable = false;
+            bUpdateScreen = false;
+    #endif
+            DrawBeamArrows(angles);
+    #ifndef DISABLE_SKIPPING
+            lastDir = beamDir;
+            lastSet = beamSet;
+        }
+    #endif
     #ifdef DEBUG
         DrawHudElement(&rawBeamDir, HUD::RawRotorPotentiometer);
         #ifdef DEBUG_ULTRAVERBOSE
