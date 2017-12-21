@@ -28,6 +28,6 @@ typedef enum {
 #endif
 
 /* Frame skips expansion */
-#if ((defined(FRAME_SKIPS)) && (0 < FRAME_SKIPS))
+#if ((!defined(FRAME_SKIPS)) || (0 == FRAME_SKIPS))
 #define DISABLE_SKIPPING
 #endif

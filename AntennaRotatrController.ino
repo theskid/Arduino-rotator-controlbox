@@ -36,7 +36,7 @@ const uint8_t rotatorSensor = POTENTIOMETER_ROTOR_SENSOR;
 #define FASTADC                                                         // Fast ADC for 12bit readings
 #define POTENTIOMETER_MAX 1023                                          // Potentiometer range [0..x]
 
-#define MULTIPLE_SAMPLING 0                                             // How many N/16 samples get acquired per 12bit read cycle
+#define MULTIPLE_SAMPLING 4                                             // How many N/16 samples get acquired per 12bit read cycle
 
 int beamDir = 0;                                                        // Actual beam direction
 int beamDirStart = 0;                                                   // The initial bearing before the rotation begins
@@ -360,7 +360,7 @@ void ConfigureIOPins() {
 // Multisampling for 12bit readings
 inline int AnalogRead12Bits(uint8_t pin) {
     static int buffer[16] = { 0 };
-    #ifdef DISABLE_MULTISTEP_SAMPLING
+    #ifndef DISABLE_MULTISTEP_SAMPLING
         for (int i = 0; i < 16; i++)
             buffer[i] = analogRead(pin);
     #else
@@ -415,7 +415,7 @@ void loop() {
                lastSet = NOREDRAW;
     static boolean bUpdateAvailable = false;
     static const int* angles[4] = { &lastSet, &lastDir, &beamSet, &beamDir };
-    #ifdef DISABLE_SKIPPING
+    #ifndef DISABLE_SKIPPING
         static int counter = -1;
         counter += 1;
         if (FRAME_SKIPS < counter)
