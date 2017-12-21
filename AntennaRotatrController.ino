@@ -146,7 +146,7 @@ inline void BeamDirection() {
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Entering BeamDirection()\r\n");
     #endif
-    if (bMoveAntenna)
+    if (bMoveAntenna || bPreSetup)
         beamDir = ReadBeamDir();
     #ifdef DEBUG
         static int lbd = 0x7FFF;
