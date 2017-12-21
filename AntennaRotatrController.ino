@@ -316,7 +316,7 @@ inline void SetRotorSpeed() {
             DebugPrintf("Current rotor motor speed: %d\r\n", spdValue);
         }
     #endif
-    int speed = map(spdValue,0,255,0,100);
+    int speed = map(spdValue,0,254,0,100);
     if (lastSpeedValue != speed) {
         lastSpeedValue = speed;
         DrawHudElement((void*)speed, HUD::CurrentSpeed);
