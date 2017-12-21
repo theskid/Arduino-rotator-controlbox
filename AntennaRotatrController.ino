@@ -447,9 +447,9 @@ void loop() {
             bUpdateScreen = false;
     #endif
             DrawBeamArrows(angles);
-    #ifndef DISABLE_SKIPPING
             lastDir = beamDir;
             lastSet = beamSet;
+    #ifndef DISABLE_SKIPPING
         }
     #endif
     #ifdef DEBUG
