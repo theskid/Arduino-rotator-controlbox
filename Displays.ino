@@ -152,7 +152,7 @@ void DrawHudElement(const void* data, const HUD& hud) {
         // While in debug mode, override the QRZ indicator and put to screen the raw rotator potentiomenter value
         case HUD::RawRotorPotentiometer: {
             static char rotor[14] = "Raw RPV: 0000";
-            sprintf(&rotor[9], "%4d", *(int*)data);
+            sprintf(&rotor[9], "%4d", (int)data);
             UserPrint(DISPLAY_MARGIN, HEIGHT - _main.h - DISPLAY_MARGIN, rotor, COLORS::White);
         }
 #endif

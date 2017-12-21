@@ -359,7 +359,7 @@ void ConfigureIOPins() {
 }
 
 // Multisampling for 12bit readings
-inline int AnalogRead12Bits(uint8_t pin) {
+inline int AnalogRead12Bits(const uint8_t& pin) {
 //    static uint16_t* history = ms_init(SGA);
     static int buffer[16] = { 0 };
     #ifndef DISABLE_MULTISTEP_SAMPLING
@@ -452,7 +452,7 @@ void loop() {
         lastSet = beamSet;
     }
     #ifdef DEBUG
-        DrawHudElement(&rawBeamDir, HUD::RawRotorPotentiometer);
+        DrawHudElement((void*)AnalogRead12Bits(rotatorSensor), HUD::RawRotorPotentiometer);
         #ifdef DEBUG_ULTRAVERBOSE
             DebugPrint("----------------------------- Cycling loop() END -----------------------------\r\n");
         #endif
