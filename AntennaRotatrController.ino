@@ -15,7 +15,6 @@
 #include "Global.h"                                                     // Main header
 #include "Displays.h"                                                   // Displays and initializations
 #include "SerialPrint.h"                                                // Serial (and debug) print(f) helpers
-#include <microsmooth.h>
 
 /*** PIN DESIGNATION AND COMPONENTS SETTINGS *************/
 
@@ -147,7 +146,8 @@ inline void BeamDirection() {
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Entering BeamDirection()\r\n");
     #endif
-    beamDir = ReadBeamDir();
+    if (bMoveAntenna)
+        beamDir = ReadBeamDir();
     #ifdef DEBUG
         static int lbd = 0x7FFF;
         if (lbd != beamDir) {
@@ -360,8 +360,8 @@ void ConfigureIOPins() {
 
 // Multisampling for 12bit readings
 inline int AnalogRead12Bits(uint8_t pin) {
-    static uint16_t* history = ms_init(SGA);
-/*    static int buffer[16] = { 0 };
+//    static uint16_t* history = ms_init(SGA);
+    static int buffer[16] = { 0 };
     #ifndef DISABLE_MULTISTEP_SAMPLING
         for (int i = 0; i < 16; i++)
             buffer[i] = analogRead(pin);
@@ -379,12 +379,11 @@ inline int AnalogRead12Bits(uint8_t pin) {
             track -= 16;
     #endif
 
-    int Result;*/
+    int Result = 0;
     for (int i = 1; i < 16; i++) {                                      // Read 16 times
-        sga_filter(analogRead(pin), history);                         // Sum results
-        //DebugPrintf("%d %d %d %d %d %d %d %d %d\r\n", history[0], history[1], history[2], history[3], history[4], history[5], history[6], history[7], history[8]);
+        Result += buffer[i];
     }
-    return (history[4] << 2);                                           // Divide by 4 for 12 bit value;
+    return (Result >> 2);                                               // Divide by 4 for 12 bit value;
 }
 
 // Arduino board bootstrap setup
