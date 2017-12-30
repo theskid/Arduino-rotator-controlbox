@@ -297,8 +297,8 @@ inline void SetRotorSpeed() {
         if (!bMoveAntenna) {
             currentSpeed = 0;
         } else {
-            int easeOut = abs(beamSet - beamDir),
-                easeIn = abs(beamDirStart - beamDir);
+            int easeIn = abs(beamDirStart - beamDir),
+                easeOut = abs(beamSetRoute - beamDir);
             if ((EASE_DEGREES < easeIn) && (EASE_DEGREES < easeOut))
                 currentSpeed = 255;
             else
