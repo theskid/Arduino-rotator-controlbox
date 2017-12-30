@@ -35,6 +35,7 @@ const uint8_t rotatorSensor = POTENTIOMETER_ROTOR_SENSOR;
 
 #define FASTADC                                                         // Fast ADC for 12bit readings
 #define POTENTIOMETER_MAX 1023                                          // Potentiometer range [0..x]
+#define EASE_DEGREES 10                                                 // Ease in/out degrees
 
 #define MULTIPLE_SAMPLING 4                                             // How many N/16 samples get acquired per 12bit read cycle
 
@@ -42,7 +43,7 @@ int beamDir = 0;                                                        // Actua
 int beamDirStart = 0;                                                   // The initial bearing before the rotation begins
 int beamSet = 0;                                                        // Beam directione to set
 int beamSetRoute = 0;                                                   // Beam setting bearing the shortest route
-int spdValue = 0;                                                       // Rotation speed
+int currentSpeed = 0;                                                       // Rotation speed
 
 boolean bMoveAntenna = false;                                           // Start Stop flag
 boolean bSpeedModeAuto = true;                                          // Speed Mode Flag
@@ -288,39 +289,37 @@ inline void SetRotorSpeed() {
     #endif
     static int lastSpeedValue = -1;
     if (!bSpeedModeAuto) {
-        spdValue = map(analogRead(spdSetPotentiometer), 0, POTENTIOMETER_MAX, 0, 255);
+        currentSpeed = map(analogRead(spdSetPotentiometer), 0, POTENTIOMETER_MAX, 0, 255);
         #ifndef PROTEUS_VSM
-            analogWrite(PWMSpeedControl, spdValue);
+            analogWrite(PWMSpeedControl, currentSpeed);
         #endif
     } else {
-        if (bMoveAntenna) {
-            int rotationValue = abs(beamSet - beamDir),
-                rotationDone = abs(beamDirStart - beamDir);
-            if (10 >= rotationValue)
-                spdValue = map(rotationValue, 0, 10, 20, 220);
-            else if (10 >= rotationDone)
-                spdValue = map(rotationDone, 0, 10, 20, 220);
-            else
-                spdValue = 255;
+        if (!bMoveAntenna) {
+            currentSpeed = 0;
         } else {
-            spdValue = 0;
+            int easeOut = abs(beamSet - beamDir),
+                easeIn = abs(beamDirStart - beamDir);
+            if ((EASE_DEGREES < easeIn) && (EASE_DEGREES < easeOut))
+                currentSpeed = 255;
+            else
+                currentSpeed = map(min(easeIn, easeOut), 0, EASE_DEGREES, 20, 220);
         }
         #ifndef PROTEUS_VSM
-            analogWrite(PWMSpeedControl, spdValue);
+            analogWrite(PWMSpeedControl, currentSpeed);
         #endif
     }
     #ifdef DEBUG_VERBOSE
         static int s = 0x7FFF;
-        if (s != spdValue) {
-            s = spdValue;
-            DebugPrintf("Current rotor motor speed: %d\r\n", spdValue);
+        if (s != currentSpeed) {
+            s = currentSpeed;
+            DebugPrintf("Current rotor motor speed: %d\r\n", currentSpeed);
         }
     #endif
-    int speed = map(spdValue,0,254,0,100);
+    int speed = map(currentSpeed,0,254,0,100);
     if (lastSpeedValue != speed) {
         lastSpeedValue = speed;
         DrawHudElement((void*)speed, HUD::CurrentSpeed);
-        DrawHudElement((void*)spdValue, HUD::SpeedMeter);
+        DrawHudElement((void*)currentSpeed, HUD::SpeedMeter);
     }
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Exiting SetRotorSpeed()\r\n");
@@ -360,7 +359,6 @@ void ConfigureIOPins() {
 
 // Multisampling for 12bit readings
 inline int AnalogRead12Bits(const uint8_t& pin) {
-//    static uint16_t* history = ms_init(SGA);
     static int buffer[16] = { 0 };
     #ifndef DISABLE_MULTISTEP_SAMPLING
         for (int i = 0; i < 16; i++)
@@ -440,7 +438,7 @@ void loop() {
         DebugPrintf("Value of the User Action flag == %s\r\n", bChoosingNewAngle ? "Setting" : "Confirmed");
         DebugPrintf("Value of the BEAM direction == %d\r\n", beamDir);
         DebugPrintf("Value of the BEAM setting == %d\r\n", beamSet);
-        DebugPrintf("Value of the throttle setting == %d\r\n", spdValue);
+        DebugPrintf("Value of the throttle setting == %d\r\n", currentSpeed);
     #endif
     if ((lastDir != beamDir) || (lastSet != beamSet))
         bUpdateAvailable = true;
