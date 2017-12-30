@@ -43,7 +43,7 @@ int beamDir = 0;                                                        // Actua
 int beamDirStart = 0;                                                   // The initial bearing before the rotation begins
 int beamSet = 0;                                                        // Beam directione to set
 int beamSetRoute = 0;                                                   // Beam setting bearing the shortest route
-int currentSpeed = 0;                                                       // Rotation speed
+int currentSpeed = 0;                                                   // Rotation speed
 
 boolean bMoveAntenna = false;                                           // Start Stop flag
 boolean bSpeedModeAuto = true;                                          // Speed Mode Flag
@@ -359,11 +359,13 @@ void ConfigureIOPins() {
 
 // Multisampling for 12bit readings
 inline int AnalogRead12Bits(const uint8_t& pin) {
-    static int buffer[16] = { 0 };
-    #ifndef DISABLE_MULTISTEP_SAMPLING
+    int Result = 0;
+
+    #ifdef DISABLE_MULTISTEP_SAMPLING
         for (int i = 0; i < 16; i++)
-            buffer[i] = analogRead(pin);
+            Result += analogRead(pin);
     #else
+        static int buffer[16] = { 0 };
         static int track = 16 - MULTIPLE_SAMPLING;
         static boolean bInitialized = false;
         if (!bInitialized) {
@@ -375,12 +377,12 @@ inline int AnalogRead12Bits(const uint8_t& pin) {
             buffer[track++] = analogRead(pin);
         if (15 < track)
             track -= 16;
+
+        for (int i = 1; i < 16; i++) {                                  // Read 16 times
+            Result += buffer[i];
+        }
     #endif
 
-    int Result = 0;
-    for (int i = 1; i < 16; i++) {                                      // Read 16 times
-        Result += buffer[i];
-    }
     return (Result >> 2);                                               // Divide by 4 for 12 bit value;
 }
 
