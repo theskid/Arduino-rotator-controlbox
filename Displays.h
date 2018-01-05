@@ -64,5 +64,6 @@ typedef enum {
 void InitializeDisplay();
 void DrawHudElement(const void* data, const HUD& hud);
 void DrawBeamArrows(const int* angles[4]);
-void UserPrint(const int& x, const int& y, const char *userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main);
-//inline void UserPrint(const int& x, const int& y, const __FlashStringHelper* userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main);
+#ifdef PROTEUS_VSM
+void P(const int& x, const int& y, const char *userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main);
+#endif

@@ -16,6 +16,10 @@
 #include "Displays.h"                                                   // Displays and initializations
 #include "SerialPrint.h"                                                // Serial (and debug) print(f) helpers
 
+#ifndef DISABLE_RAR
+#include <ResponsiveAnalogRead.h>
+#endif
+
 /*** PIN DESIGNATION AND COMPONENTS SETTINGS *************/
 
 const int StartStopSwitch = BUTTON_START_STOP;
@@ -85,9 +89,9 @@ extern UTFT_Geometry geo;                                               // Geome
 // Sensors reading helpers
 #ifdef DEBUG
     int rawBeamDir;
-    #define ReadBeamDir() map(rawBeamDir = AnalogRead12Bits(rotatorSensor), ROTATION_BEGIN, ROTATION_END, 0, 360)
+    #define ReadBeamDir() map(rawBeamDir = AnalogRead12Bits(), ROTATION_BEGIN, ROTATION_END, 0, 360)
 #else
-    #define ReadBeamDir() map(AnalogRead12Bits(rotatorSensor), ROTATION_BEGIN, ROTATION_END, 0, 360)
+    #define ReadBeamDir() map(AnalogRead12Bits(), ROTATION_BEGIN, ROTATION_END, 0, 360)
 #endif
 #define ReadBeamSet() map(analogRead(beamSetPotentiometer), 0, POTENTIOMETER_MAX, 0, 359)
 
@@ -147,7 +151,7 @@ inline void BeamDirection() {
     #ifdef DEBUG_ULTRAVERBOSE
         DebugPrint("Entering BeamDirection()\r\n");
     #endif
-    if (bMoveAntenna || bPreSetup)
+    //if (bMoveAntenna || bPreSetup)
         beamDir = ReadBeamDir();
     #ifdef DEBUG
         static int lbd = 0x7FFF;
@@ -357,13 +361,26 @@ void ConfigureIOPins() {
     analogReference(DEFAULT);
 }
 
+#ifndef DISABLE_RAR
+inline int _RAR_Read() {
+    static ResponsiveAnalogRead analog(rotatorSensor, true);
+    analog.update();
+    return analog.getValue();
+}
+#endif
+
 // Multisampling for 12bit readings
-inline int AnalogRead12Bits(const uint8_t& pin) {
+inline int AnalogRead12Bits() {
     int Result = 0;
+    #ifdef DISABLE_RAR
+        #define read() analogRead(rotatorSensor)
+    #else
+        #define read() _RAR_Read()
+    #endif
 
     #ifdef DISABLE_MULTISTEP_SAMPLING
         for (int i = 0; i < 16; i++)
-            Result += analogRead(pin);
+            Result += read();
     #else
         static int buffer[16] = { 0 };
         static int track = 16 - MULTIPLE_SAMPLING;
@@ -371,10 +388,10 @@ inline int AnalogRead12Bits(const uint8_t& pin) {
         if (!bInitialized) {
             bInitialized = true;
             for (int i = 0; i < (16 - MULTIPLE_SAMPLING); i++)
-                buffer[i] = analogRead(pin);
+                buffer[i] = read();
         }
         for (int i = 0; i < MULTIPLE_SAMPLING; i++)
-            buffer[track++] = analogRead(pin);
+            buffer[track++] = read();
         if (15 < track)
             track -= 16;
 
@@ -452,7 +469,7 @@ void loop() {
         lastSet = beamSet;
     }
     #ifdef DEBUG
-        DrawHudElement((void*)AnalogRead12Bits(rotatorSensor), HUD::RawRotorPotentiometer);
+        DrawHudElement((void*)AnalogRead12Bits(), HUD::RawRotorPotentiometer);
         #ifdef DEBUG_ULTRAVERBOSE
             DebugPrint("----------------------------- Cycling loop() END -----------------------------\r\n");
         #endif
