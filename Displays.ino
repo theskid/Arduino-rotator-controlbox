@@ -61,7 +61,7 @@ AREA speedMeter = {
     { WIDTH - DISPLAY_MARGIN - 4 - _main.w + (_main.w >> 1), HEIGHT - _main.h - 2 - DISPLAY_MARGIN }
 };
 
-void P(const int& x, const int& y, const char *userData, const COLORS& color, const UI_FONT& font) {
+void P(const int& x, const int& y, const char *userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main) {
     display.setColor(color);
     switch (font) {
         case UI_FONT::Main: display.setFont(_main.data); break;
