@@ -61,7 +61,7 @@ AREA speedMeter = {
     { WIDTH - DISPLAY_MARGIN - 4 - _main.w + (_main.w >> 1), HEIGHT - _main.h - 2 - DISPLAY_MARGIN }
 };
 
-void UserPrint(const int& x, const int& y, const char *userData, const COLORS& color, const UI_FONT& font) {
+void P(const int& x, const int& y, const char *userData, const COLORS& color, const UI_FONT& font = UI_FONT::Main) {
     display.setColor(color);
     switch (font) {
         case UI_FONT::Main: display.setFont(_main.data); break;
@@ -74,7 +74,7 @@ void DrawHudElement(const void* data, const HUD& hud) {
     switch (hud) {
         // Draw the Auto/Manual indicator
         case HUD::AutoManual: {
-            UserPrint(WIDTH - (_main.w * strlen((const char*)data)) - DISPLAY_MARGIN, DISPLAY_MARGIN, (const char*)data, COLORS::Yellow);
+            P(WIDTH - (_main.w * strlen((const char*)data)) - DISPLAY_MARGIN, DISPLAY_MARGIN, (const char*)data, COLORS::Yellow);
             break;
         }
         // Draw the clockwise/counterclockwise indicator
@@ -82,12 +82,12 @@ void DrawHudElement(const void* data, const HUD& hud) {
             int r = WIDTH - (_main.w * 3) - DISPLAY_MARGIN;
             if (4 == strlen((const char*)data))
                 r -= (_main.w >> 1);
-            UserPrint(r, _main.h + DISPLAY_MARGIN, (const char*)data, COLORS::Yellow);
+            P(r, _main.h + DISPLAY_MARGIN, (const char*)data, COLORS::Yellow);
             break;
         }
         // Draw the overlap alert
         case HUD::OverlapAlert: {
-            UserPrint(WIDTH - (_main.w << 2) - DISPLAY_MARGIN, HEIGHT - _main.h - DISPLAY_MARGIN, (const char*)data, COLORS::Red);
+            P(WIDTH - (_main.w << 2) - DISPLAY_MARGIN, HEIGHT - _main.h - DISPLAY_MARGIN, (const char*)data, COLORS::Red);
             break;
         }
         // Draw the current speed applied to the rotor
@@ -104,7 +104,7 @@ void DrawHudElement(const void* data, const HUD& hud) {
                 x -= (_main.w >> 1);
             }
             sprintf(speed, mask, (int)data);
-            UserPrint(x, y, speed, COLORS::Yellow);
+            P(x, y, speed, COLORS::Yellow);
             break;
         }
         // Draw the speed meter
@@ -144,7 +144,7 @@ void DrawHudElement(const void* data, const HUD& hud) {
             } else if (HUD::BeamRightArrow == hud) {
                 geo.fillTriangle(x + RIGHTMOST + OVERLAP_SIZE, y + MIDARROW, x + RIGHTMOST, y + LOWY, x + RIGHTMOST, y + HIGHY);
             } else {
-                UserPrint(x + 5 + OVERLAP_SIZE, y, hb->angle, hb->color, UI_FONT::Angles);
+                P(x + 5 + OVERLAP_SIZE, y, hb->angle, hb->color, UI_FONT::Angles);
             }
             break;
         }
@@ -153,7 +153,7 @@ void DrawHudElement(const void* data, const HUD& hud) {
         case HUD::RawRotorPotentiometer: {
             static char rotor[14] = "Raw RPV: 0000";
             sprintf(&rotor[9], "%4d", (int)data);
-            UserPrint(DISPLAY_MARGIN, HEIGHT - _main.h - DISPLAY_MARGIN, rotor, COLORS::White);
+            P(DISPLAY_MARGIN, HEIGHT - _main.h - DISPLAY_MARGIN, rotor, COLORS::White);
         }
 #endif
     }
@@ -166,21 +166,21 @@ void InitializeDisplay() {
 
     // Draw the reference display
     #define NESW_OFFSET 5                                               // How many pixels the notches get out from the compass
-    UserPrint(DISPLAY_MARGIN, DISPLAY_MARGIN, ("ANTENNA ROTATOR"), COLORS::Orange);
-    UserPrint(DISPLAY_MARGIN + (2.5 * _main.w), DISPLAY_MARGIN + (_main.h * 1.25), ("CONTROLLER"), COLORS::Orange);
+    P(DISPLAY_MARGIN, DISPLAY_MARGIN, ("ANTENNA ROTATOR"), COLORS::Orange);
+    P(DISPLAY_MARGIN + (2.5 * _main.w), DISPLAY_MARGIN + (_main.h * 1.25), ("CONTROLLER"), COLORS::Orange);
     #define BEAMS_CENTER (((OVERLAP_SIZE << 1) + 11 + (_angles.w * 3) - (_main.w << 3)) >> 1)
-    UserPrint(DISPLAY_MARGIN + BEAMS_CENTER, int(HEIGHT * 0.22), ("BEAM DIR"), COLORS::Red);
-    UserPrint(DISPLAY_MARGIN + BEAMS_CENTER, int(HEIGHT * 0.55), ("BEAM SET"), COLORS::Red);
+    P(DISPLAY_MARGIN + BEAMS_CENTER, int(HEIGHT * 0.22), ("BEAM DIR"), COLORS::Red);
+    P(DISPLAY_MARGIN + BEAMS_CENTER, int(HEIGHT * 0.55), ("BEAM SET"), COLORS::Red);
     #ifndef DEBUG
-        UserPrint(DISPLAY_MARGIN, HEIGHT-_main.h-DISPLAY_MARGIN, (QRZ ": " NAME), COLORS::White);
+        P(DISPLAY_MARGIN, HEIGHT-_main.h-DISPLAY_MARGIN, (QRZ ": " NAME), COLORS::White);
     #endif
     display.setColor(COLORS::Green);
     display.drawRect(speedMeter.tl.x,speedMeter.tl.y,speedMeter.br.x,speedMeter.br.y);
     display.drawCircle(compass.X, compass.Y, compass.radius);
-    UserPrint((compass.X-((_main.w>>1)-2)), (compass.Y-(compass.radius+NESW_OFFSET+_main.h)), ("N"), COLORS::Red);
-    UserPrint((compass.X-((_main.w>>1)-2)), (compass.Y+(compass.radius+NESW_OFFSET+2)), ("S"), COLORS::Red);
-    UserPrint((compass.X+(compass.radius+NESW_OFFSET)+2), (compass.Y-(_main.h>>1)), ("E"), COLORS::Red);
-    UserPrint((compass.X-(compass.radius+NESW_OFFSET+_main.w)+2), (compass.Y-(_main.h>>1)), ("W"), COLORS::Red);
+    P((compass.X-((_main.w>>1)-2)), (compass.Y-(compass.radius+NESW_OFFSET+_main.h)), ("N"), COLORS::Red);
+    P((compass.X-((_main.w>>1)-2)), (compass.Y+(compass.radius+NESW_OFFSET+2)), ("S"), COLORS::Red);
+    P((compass.X+(compass.radius+NESW_OFFSET)+2), (compass.Y-(_main.h>>1)), ("E"), COLORS::Red);
+    P((compass.X-(compass.radius+NESW_OFFSET+_main.w)+2), (compass.Y-(_main.h>>1)), ("W"), COLORS::Red);
     int dxOuter, dyOuter, step = -1;
     display.setColor(255, 128, 0);
     for (float i = 0; i < 360; i += 11.25) {
